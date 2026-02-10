@@ -21,6 +21,8 @@ init:
 	@sudo mkdir -p $(DATA_ROOT)/syncthing/config
 	@sudo mkdir -p $(DATA_ROOT)/jellyfin/config
 	@sudo mkdir -p $(DATA_ROOT)/jellyfin/cache
+	@sudo mkdir -p $(DATA_ROOT)/pihole/config
+	@sudo mkdir -p $(DATA_ROOT)/pihole/dnsmasq
 	@sudo mkdir -p $(MEDIA_ROOT)
 	@sudo mkdir -p $(DOCS_ROOT)
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
