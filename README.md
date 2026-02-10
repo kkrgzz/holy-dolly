@@ -5,7 +5,7 @@ Self-hosted media and document management stack.
 ## Services
 
 - **Paperless-NGX** - Document management (port 8000)
-- **Miniflux** - RSS reader (port 8080)
+- **Miniflux** - RSS reader (port 9090)
 - **Syncthing** - File synchronization (port 8384)
 - **Filebrowser** - Web file manager (port 8081)
 - **Jellyfin** - Media server (port 8096)
