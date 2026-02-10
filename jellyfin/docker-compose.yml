@@ -1,0 +1,22 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATA_ROOT}/jellyfin/config:/config
+      - ${MEDIA_ROOT}:/data/media
+    ports:
+      - 8096:8096
+    #devices:
+      #- /dev/dri:/dev/dri # GPU Access
+    networks:
+      - web_network
+    restart: unless-stopped
+
+networks:
+  web_network:
+    external: true

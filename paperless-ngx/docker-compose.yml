@@ -1,0 +1,49 @@
+services:
+  broker:
+    image: docker.io/library/redis:7
+    restart: unless-stopped
+    networks:
+      - web_network
+    volumes:
+      - ${DATA_ROOT}/paperless/redis:/data
+
+  db:
+    image: docker.io/library/postgres:16
+    restart: unless-stopped
+    networks:
+      - web_network
+    volumes:
+      - ${DATA_ROOT}/paperless/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${PAPERLESS_DB_PASS}
+
+  webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    networks:
+      - web_network
+    ports:
+      - "8000:8000"
+    user: "${PUID}:${PGID}"
+    volumes:
+      - ${DATA_ROOT}/paperless/data:/usr/src/paperless/data
+      - ${DATA_ROOT}/paperless/media:/usr/src/paperless/media
+      - ${DATA_ROOT}/paperless/export:/usr/src/paperless/export
+      - ${DOCS_ROOT}:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_DBHOST: db
+      PAPERLESS_DBUSER: ${POSTGRES_USER}
+      PAPERLESS_DBPASS: ${PAPERLESS_DB_PASS}
+      USER_MAP_UID: ${PUID}
+      USER_MAP_GID: ${PGID}
+      PAPERLESS_TIME_ZONE: ${TZ}
+
+networks:
+  web_network:
+    external: true

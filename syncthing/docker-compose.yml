@@ -1,0 +1,25 @@
+services:
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:latest
+    container_name: syncthing
+    hostname: raspi5-sync
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DATA_ROOT}/syncthing/config:/config
+      - ${DOCS_ROOT}:/data/documents  # Mapping directly to where Paperless consumes
+      - ${MEDIA_ROOT}:/data/media
+    networks:
+      - web_network
+    ports:
+      - 8384:8384
+      - 22002:22000/tcp
+      - 22001:22000/udp
+      - 21027:21027/udp
+    restart: unless-stopped
+
+networks:
+  web_network:
+    external: true

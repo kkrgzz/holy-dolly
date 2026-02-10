@@ -1,0 +1,20 @@
+services:
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    user: "${PUID}:${PGID}"
+    ports:
+      - "8081:80"
+    volumes:
+      - ${DATA_ROOT}/filebrowser/filebrowser.db:/database.db
+      - ${DATA_ROOT}/filebrowser/settings.json:/.filebrowser.json
+      # We map the PARENT of docs/media so you can see both
+      - ${MEDIA_ROOT}:/srv/media
+      - ${DOCS_ROOT}:/srv/documents
+    networks:
+      - web_network
+    restart: unless-stopped
+
+networks:
+  web_network:
+    external: true
