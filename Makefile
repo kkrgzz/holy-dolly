@@ -11,11 +11,22 @@ all: init up
 # =============================================================================
 init:
 	@echo "--- Initializing Directories & Permissions ---"
-	sudo mkdir -p $(DATA_ROOT)/{filebrowser,paperless/{redis,pgdata,data,media,export},miniflux/db,syncthing/config,jellyfin/{config,cache}}
-	sudo mkdir -p $(MEDIA_ROOT) $(DOCS_ROOT)
-	sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db $(DATA_ROOT)/filebrowser/settings.json
-	sudo chown -R $(PUID):$(PGID) $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
-	sudo chmod -R 755 $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
+	@sudo mkdir -p $(DATA_ROOT)/filebrowser
+	@sudo mkdir -p $(DATA_ROOT)/paperless/redis
+	@sudo mkdir -p $(DATA_ROOT)/paperless/pgdata
+	@sudo mkdir -p $(DATA_ROOT)/paperless/data
+	@sudo mkdir -p $(DATA_ROOT)/paperless/media
+	@sudo mkdir -p $(DATA_ROOT)/paperless/export
+	@sudo mkdir -p $(DATA_ROOT)/miniflux/db
+	@sudo mkdir -p $(DATA_ROOT)/syncthing/config
+	@sudo mkdir -p $(DATA_ROOT)/jellyfin/config
+	@sudo mkdir -p $(DATA_ROOT)/jellyfin/cache
+	@sudo mkdir -p $(MEDIA_ROOT)
+	@sudo mkdir -p $(DOCS_ROOT)
+	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
+	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
+	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
+	@sudo chmod -R 755 $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
 	@echo "--- Done ---"
 
 network:
