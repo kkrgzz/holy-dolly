@@ -44,6 +44,7 @@ up: network
 	@docker compose -f syncthing/docker-compose.yml up -d
 	@docker compose -f filebrowser/docker-compose.yml up -d
 	@docker compose -f jellyfin/docker-compose.yml up -d
+	@docker compose -f pihole/docker-compose.yml up -d
 
 down:
 	@echo "--- Stopping All Services ---"
@@ -52,6 +53,7 @@ down:
 	@docker compose -f syncthing/docker-compose.yml down
 	@docker compose -f filebrowser/docker-compose.yml down
 	@docker compose -f jellyfin/docker-compose.yml down
+	@docker compose -f pihole/docker-compose.yml down
 
 restart:
 	@echo "--- Restarting All Services ---"
@@ -60,13 +62,15 @@ restart:
 	@docker compose -f syncthing/docker-compose.yml restart
 	@docker compose -f filebrowser/docker-compose.yml restart
 	@docker compose -f jellyfin/docker-compose.yml restart
+	@docker compose -f pihole/docker-compose.yml restart
 
 logs:
 	@docker compose -f paperless-ngx/docker-compose.yml logs -f &
 	@docker compose -f miniflux/docker-compose.yml logs -f &
 	@docker compose -f syncthing/docker-compose.yml logs -f &
 	@docker compose -f filebrowser/docker-compose.yml logs -f &
-	@docker compose -f jellyfin/docker-compose.yml logs -f
+	@docker compose -f jellyfin/docker-compose.yml logs -f &
+	@docker compose -f pihole/docker-compose.yml logs -f
 
 reset:
 	@echo "--- Resetting All Services (removing all volumes/data) ---"
@@ -75,6 +79,7 @@ reset:
 	@docker compose -f syncthing/docker-compose.yml down -v
 	@docker compose -f filebrowser/docker-compose.yml down -v
 	@docker compose -f jellyfin/docker-compose.yml down -v
+	@docker compose -f pihole/docker-compose.yml down -v
 	@make up
 	@echo "--- All services have been reset with fresh data ---"
 
@@ -133,7 +138,7 @@ help:
 	@echo "  make reset-%             - Reset service (delete all data and restart fresh)"
 	@echo "  make logs-%              - View service logs"
 	@echo ""
-	@echo "Services: paperless-ngx, miniflux, syncthing, filebrowser, jellyfin"
+	@echo "Services: paperless-ngx, miniflux, syncthing, filebrowser, jellyfin, pihole"
 	@echo ""
 	@echo "EXAMPLES:"
 	@echo "  make restart-syncthing   - Restart only Syncthing"
