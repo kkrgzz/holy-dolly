@@ -1,0 +1,51 @@
+services:
+  firefly-db:
+    image: mariadb:lts
+    restart: unless-stopped
+    networks:
+      - web_network
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_USER: firefly
+      MYSQL_PASSWORD: ${FIREFLY_DB_PASS}
+      MYSQL_DATABASE: firefly
+    volumes:
+      - ${DATA_ROOT}/firefly/db:/var/lib/mysql
+
+  firefly:
+    image: fireflyiii/core:latest
+    restart: unless-stopped
+    depends_on:
+      - firefly-db
+    networks:
+      - web_network
+    ports:
+      - "8082:8080"
+    environment:
+      APP_KEY: ${FIREFLY_APP_KEY}
+      DB_CONNECTION: mysql
+      DB_HOST: firefly-db
+      DB_PORT: 3306
+      DB_DATABASE: firefly
+      DB_USERNAME: firefly
+      DB_PASSWORD: ${FIREFLY_DB_PASS}
+      TZ: ${TZ}
+    volumes:
+      - ${DATA_ROOT}/firefly/upload:/var/www/html/storage/upload
+
+  firefly-importer:
+    image: fireflyiii/data-importer:latest
+    restart: unless-stopped
+    depends_on:
+      - firefly
+    networks:
+      - web_network
+    ports:
+      - "8083:8080"
+    environment:
+      FIREFLY_III_URL: http://firefly:8080
+      FIREFLY_III_ACCESS_TOKEN: ${FIREFLY_IMPORTER_TOKEN}
+
+networks:
+  web_network:
+    external: true
