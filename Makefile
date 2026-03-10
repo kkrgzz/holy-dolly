@@ -23,6 +23,8 @@ init:
 	@sudo mkdir -p $(DATA_ROOT)/jellyfin/cache
 	@sudo mkdir -p $(DATA_ROOT)/pihole/config
 	@sudo mkdir -p $(DATA_ROOT)/pihole/dnsmasq
+	@sudo mkdir -p $(DATA_ROOT)/firefly/db
+	@sudo mkdir -p $(DATA_ROOT)/firefly/upload
 	@sudo mkdir -p $(MEDIA_ROOT)
 	@sudo mkdir -p $(DOCS_ROOT)
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
@@ -45,6 +47,7 @@ up: network
 	@docker compose -f filebrowser/docker-compose.yml up -d
 	@docker compose -f jellyfin/docker-compose.yml up -d
 	@docker compose -f pihole/docker-compose.yml up -d
+	@docker compose -f firefly/docker-compose.yml up -d
 
 down:
 	@echo "--- Stopping All Services ---"
@@ -54,6 +57,7 @@ down:
 	@docker compose -f filebrowser/docker-compose.yml down
 	@docker compose -f jellyfin/docker-compose.yml down
 	@docker compose -f pihole/docker-compose.yml down
+	@docker compose -f firefly/docker-compose.yml down
 
 restart:
 	@echo "--- Restarting All Services ---"
@@ -63,6 +67,7 @@ restart:
 	@docker compose -f filebrowser/docker-compose.yml restart
 	@docker compose -f jellyfin/docker-compose.yml restart
 	@docker compose -f pihole/docker-compose.yml restart
+	@docker compose -f firefly/docker-compose.yml restart
 
 logs:
 	@docker compose -f paperless-ngx/docker-compose.yml logs -f &
@@ -71,6 +76,7 @@ logs:
 	@docker compose -f filebrowser/docker-compose.yml logs -f &
 	@docker compose -f jellyfin/docker-compose.yml logs -f &
 	@docker compose -f pihole/docker-compose.yml logs -f
+	@docker compose -f firefly/docker-compose.yml logs -f
 
 reset:
 	@echo "--- Resetting All Services (removing all volumes/data) ---"
@@ -80,6 +86,7 @@ reset:
 	@docker compose -f filebrowser/docker-compose.yml down -v
 	@docker compose -f jellyfin/docker-compose.yml down -v
 	@docker compose -f pihole/docker-compose.yml down -v
+	@docker compose -f firefly/docker-compose.yml down -v
 	@make up
 	@echo "--- All services have been reset with fresh data ---"
 

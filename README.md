@@ -9,6 +9,8 @@ Self-hosted media and document management stack.
 - **Syncthing** - File synchronization (port 8384)
 - **Filebrowser** - Web file manager (port 8081)
 - **Jellyfin** - Media server (port 8096)
+- **Pi-hole** - DNS ad blocker (port 8053)
+- **Firefly III** - Personal finance manager (port 8082, importer port 8083)
 
 ## Quick Start
 
@@ -37,7 +39,7 @@ make reset-syncthing      # Fresh install (deletes data!)
 make logs-syncthing
 ```
 
-Works with: `paperless-ngx`, `miniflux`, `syncthing`, `filebrowser`, `jellyfin`
+Works with: `paperless-ngx`, `miniflux`, `syncthing`, `filebrowser`, `jellyfin`, `pihole`, `firefly`
 
 ## Common Tasks
 
