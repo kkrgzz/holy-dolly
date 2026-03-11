@@ -6,12 +6,7 @@ services:
         DNS_PLUGIN: ${CADDY_DNS_PLUGIN:-porkbun}
     restart: unless-stopped
     network_mode: "host"
-    environment:
-      - CADDY_DOMAIN=${CADDY_DOMAIN}
-      - TAILSCALE_IP=${TAILSCALE_IP}
-      # DNS provider credentials — add/change depending on your provider
-      - PORKBUN_API_KEY=${PORKBUN_API_KEY}
-      - PORKBUN_API_SECRET_KEY=${PORKBUN_API_SECRET_KEY}
+    env_file: ../.env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data

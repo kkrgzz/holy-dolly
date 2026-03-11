@@ -43,6 +43,10 @@ services:
       USER_MAP_UID: ${PUID}
       USER_MAP_GID: ${PGID}
       PAPERLESS_TIME_ZONE: ${TZ}
+      PAPERLESS_URL: https://paperless.${CADDY_DOMAIN}
+      PAPERLESS_CSRF_TRUSTED_ORIGINS: https://paperless.${CADDY_DOMAIN}
+      PAPERLESS_USE_X_FORWARD_HOST: "true"
+      PAPERLESS_USE_X_FORWARD_PORT: "true"
 
 networks:
   web_network:
