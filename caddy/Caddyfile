@@ -1,0 +1,73 @@
+# =============================================================================
+# Global options
+# =============================================================================
+# DNS-01 challenge — change this block if you switch DNS providers.
+# Porkbun (default):
+#   acme_dns porkbun {
+#       api_key     {$PORKBUN_API_KEY}
+#       api_secret_key {$PORKBUN_API_SECRET_KEY}
+#   }
+# Cloudflare:
+#   acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
+# DuckDNS:
+#   acme_dns duckdns {$DUCKDNS_API_TOKEN}
+# =============================================================================
+{
+	acme_dns porkbun {
+		api_key {$PORKBUN_API_KEY}
+		api_secret_key {$PORKBUN_API_SECRET_KEY}
+	}
+}
+
+# Bind to Tailscale interface only — services are not exposed to LAN/internet
+(tailscale) {
+	bind {$TAILSCALE_IP}
+}
+
+# Paperless-NGX - Document management
+paperless.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8000
+}
+
+# Miniflux - RSS reader
+miniflux.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:9090
+}
+
+# Syncthing - File synchronization
+syncthing.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8384
+}
+
+# Filebrowser - Web file manager
+files.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8081
+}
+
+# Jellyfin - Media server
+jellyfin.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8096
+}
+
+# Pi-hole - DNS ad blocker
+pihole.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8053
+}
+
+# Firefly III - Personal finance manager
+firefly.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8082
+}
+
+# Firefly III Data Importer
+firefly-importer.{$CADDY_DOMAIN} {
+	import tailscale
+	reverse_proxy localhost:8083
+}

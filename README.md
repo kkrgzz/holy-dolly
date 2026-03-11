@@ -4,6 +4,7 @@ Self-hosted media and document management stack.
 
 ## Services
 
+- **Caddy** - Reverse proxy & automatic SSL (ports 80, 443)
 - **Paperless-NGX** - Document management (port 8000)
 - **Miniflux** - RSS reader (port 9090)
 - **Syncthing** - File synchronization (port 8384)
@@ -11,6 +12,19 @@ Self-hosted media and document management stack.
 - **Jellyfin** - Media server (port 8096)
 - **Pi-hole** - DNS ad blocker (port 8053)
 - **Firefly III** - Personal finance manager (port 8082, importer port 8083)
+
+### Subdomain Mapping (via Caddy)
+
+| Service | URL |
+|---|---|
+| Paperless-NGX | `paperless.yourdomain.com` |
+| Miniflux | `miniflux.yourdomain.com` |
+| Syncthing | `syncthing.yourdomain.com` |
+| Filebrowser | `files.yourdomain.com` |
+| Jellyfin | `jellyfin.yourdomain.com` |
+| Pi-hole | `pihole.yourdomain.com` |
+| Firefly III | `firefly.yourdomain.com` |
+| Firefly Importer | `firefly-importer.yourdomain.com` |
 
 ## Quick Start
 
@@ -39,7 +53,7 @@ make reset-syncthing      # Fresh install (deletes data!)
 make logs-syncthing
 ```
 
-Works with: `paperless-ngx`, `miniflux`, `syncthing`, `filebrowser`, `jellyfin`, `pihole`, `firefly`
+Works with: `caddy`, `paperless-ngx`, `miniflux`, `syncthing`, `filebrowser`, `jellyfin`, `pihole`, `firefly`
 
 ## Common Tasks
 

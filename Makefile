@@ -27,6 +27,7 @@ init:
 	@sudo mkdir -p $(DATA_ROOT)/firefly/upload
 	@sudo mkdir -p $(MEDIA_ROOT)
 	@sudo mkdir -p $(DOCS_ROOT)
+	@sudo mkdir -p $(DATA_ROOT)/caddy
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
 	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
 	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
@@ -41,6 +42,7 @@ network:
 # =============================================================================
 up: network
 	@echo "--- Starting All Services ---"
+	@docker compose -f caddy/docker-compose.yml up -d --build
 	@docker compose -f paperless-ngx/docker-compose.yml up -d
 	@docker compose -f miniflux/docker-compose.yml up -d
 	@docker compose -f syncthing/docker-compose.yml up -d
@@ -58,9 +60,11 @@ down:
 	@docker compose -f jellyfin/docker-compose.yml down
 	@docker compose -f pihole/docker-compose.yml down
 	@docker compose -f firefly/docker-compose.yml down
+	@docker compose -f caddy/docker-compose.yml down
 
 restart:
 	@echo "--- Restarting All Services ---"
+	@docker compose -f caddy/docker-compose.yml restart
 	@docker compose -f paperless-ngx/docker-compose.yml restart
 	@docker compose -f miniflux/docker-compose.yml restart
 	@docker compose -f syncthing/docker-compose.yml restart
@@ -70,16 +74,18 @@ restart:
 	@docker compose -f firefly/docker-compose.yml restart
 
 logs:
+	@docker compose -f caddy/docker-compose.yml logs -f &
 	@docker compose -f paperless-ngx/docker-compose.yml logs -f &
 	@docker compose -f miniflux/docker-compose.yml logs -f &
 	@docker compose -f syncthing/docker-compose.yml logs -f &
 	@docker compose -f filebrowser/docker-compose.yml logs -f &
 	@docker compose -f jellyfin/docker-compose.yml logs -f &
-	@docker compose -f pihole/docker-compose.yml logs -f
+	@docker compose -f pihole/docker-compose.yml logs -f &
 	@docker compose -f firefly/docker-compose.yml logs -f
 
 reset:
 	@echo "--- Resetting All Services (removing all volumes/data) ---"
+	@docker compose -f caddy/docker-compose.yml down -v
 	@docker compose -f paperless-ngx/docker-compose.yml down -v
 	@docker compose -f miniflux/docker-compose.yml down -v
 	@docker compose -f syncthing/docker-compose.yml down -v
@@ -145,7 +151,7 @@ help:
 	@echo "  make reset-%             - Reset service (delete all data and restart fresh)"
 	@echo "  make logs-%              - View service logs"
 	@echo ""
-	@echo "Services: paperless-ngx, miniflux, syncthing, filebrowser, jellyfin, pihole"
+	@echo "Services: caddy, paperless-ngx, miniflux, syncthing, filebrowser, jellyfin, pihole, firefly"
 	@echo ""
 	@echo "EXAMPLES:"
 	@echo "  make restart-syncthing   - Restart only Syncthing"
