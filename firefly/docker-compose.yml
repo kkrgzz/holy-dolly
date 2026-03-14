@@ -12,7 +12,7 @@ services:
       - ${DATA_ROOT}/firefly/db:/var/lib/mysql
 
   firefly:
-    image: fireflyiii/core:6
+    image: fireflyiii/core:v6.5.4
     container_name: firefly
     restart: unless-stopped
     depends_on:
@@ -34,7 +34,7 @@ services:
       - ${DATA_ROOT}/firefly/upload:/var/www/html/storage/upload
 
   firefly-importer:
-    image: fireflyiii/data-importer:1
+    image: fireflyiii/data-importer:v2.2.1
     container_name: firefly-importer
     restart: unless-stopped
     depends_on:

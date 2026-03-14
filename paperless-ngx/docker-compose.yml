@@ -18,7 +18,7 @@ services:
       - ${DATA_ROOT}/paperless/pgdata:/var/lib/postgresql/data
 
   paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2
+    image: ghcr.io/paperless-ngx/paperless-ngx:v2.20.10
     container_name: paperless
     restart: unless-stopped
     depends_on:

@@ -182,17 +182,26 @@ make up-immich
 
 ## Updating Services
 
-Images are pinned to major versions (e.g. `postgres:16`, `fireflyiii/core:6`).
-This prevents surprise breaking changes from auto-updates.
+Infrastructure images (`postgres:16`, `redis:7.4-alpine`, `mariadb:11.4`) are
+pinned to minor versions. App images use `latest` by default.
 
-To update a single service to the latest version within its pinned major:
+**How to pin an app image after first deploy (recommended):**
 
 ```bash
-make update-paperless-ngx
+# Find the exact version that is currently running
+docker inspect paperless | grep -i '"Image"'
+
+# Edit the image tag in the compose file to that version
+nano paperless-ngx/docker-compose.yml
+
+# Example result:
+#   image: ghcr.io/paperless-ngx/paperless-ngx:2.14.7
 ```
 
-To intentionally upgrade to a new major version, edit the `image:` tag in the
-service's `docker-compose.yml`, then run `make update-<name>`.
+Do this for each service once you confirm it is working. From that point,
+`make update-<name>` will only apply patch updates within that version.
+
+To intentionally upgrade, edit the `image:` tag and run `make update-<name>`.
 
 > **Immich** is an exception — it updates frequently and recommends staying
 > on the latest release. Pin `IMMICH_VERSION` in `.env` to a specific tag
