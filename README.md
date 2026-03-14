@@ -86,14 +86,16 @@ HDD (HDD_ROOT=/mnt/hdd)            — bulk storage, USB connected
 
 ## Setup
 
-### 1. Clone and configure
+### 1. Clone and generate secrets
 
 ```bash
 git clone <repo-url> holy-dolly
 cd holy-dolly
-cp .env.template .env
-nano .env   # fill in all values
+make setup   # copies .env.template → .env and generates all secrets
 ```
+
+Then open `.env` and fill in the remaining fields the script tells you about:
+`PUID`, `PGID`, `TZ`, `DOMAIN`, `HDD_ROOT`, `SYNCTHING_HOSTNAME`
 
 ### 2. HDD — ensure nofail in fstab
 

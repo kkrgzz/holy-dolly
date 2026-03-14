@@ -6,7 +6,13 @@ OPTIONAL_SERVICES := immich uptime-kuma n8n
 
 .PHONY: all init up up-all down down-all restart status logs help
 
-all: init up
+all: setup init up
+
+# =============================================================================
+# FIRST-TIME SETUP (run once after cloning)
+# =============================================================================
+setup:
+	@bash setup.sh
 
 # =============================================================================
 # INITIALIZATION (run once after cloning)
@@ -127,8 +133,10 @@ logs:
 help:
 	@echo "Holy Dolly — Homelab Docker Stack"
 	@echo ""
-	@echo "SETUP:"
+	@echo "SETUP (run once, in order):"
+	@echo "  make setup             Copy .env.template and generate all secrets"
 	@echo "  make init              Create all required directories on SSD and HDD"
+	@echo "  make up                Start core services"
 	@echo ""
 	@echo "CORE COMMANDS:"
 	@echo "  make up                Start core services"
