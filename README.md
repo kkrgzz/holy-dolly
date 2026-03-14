@@ -17,7 +17,10 @@ Internet / Tailscale
    ├── Syncthing      :8384
    ├── Filebrowser    :8081
    ├── Firefly III    :8082
-   └── Firefly Import :8083
+   ├── Firefly Import :8083
+   ├── n8n            :5678  (optional)
+   ├── Immich         :2283  (optional)
+   └── Uptime Kuma    :3001  (optional)
 
    Proxmox LXC containers (not in this stack)
    ├── Pi-hole        (DNS ad blocking)
@@ -43,6 +46,7 @@ Configure these in NPM as proxy hosts pointing to `<docker-vm-ip>:<port>`.
 
 | Service | Port | Suggested Subdomain |
 |---|---|---|
+| n8n | `5678` | `n8n.yourdomain.com` |
 | Immich | `2283` | `photos.yourdomain.com` |
 | Uptime Kuma | `3001` | `status.yourdomain.com` |
 
@@ -66,6 +70,9 @@ VM disk (DATA_ROOT=/opt/docker-data)   — regular directory, no mount needed
 ├── immich/
 │   ├── pgdata/                    database
 │   └── model-cache/               ML models for face detection
+├── n8n/
+│   ├── pgdata/                    database
+│   └── data/                      encryption keys, workflow files
 └── uptime-kuma/                   monitoring data
 
 HDD (HDD_ROOT=/mnt/hdd)            — bulk storage, USB connected
@@ -114,7 +121,7 @@ make init
 
 ```bash
 make up          # core services only
-make up-all      # core + optional (Immich, Uptime Kuma)
+make up-all      # core + optional (n8n, Immich, Uptime Kuma)
 ```
 
 ### 5. First-time service setup
@@ -129,6 +136,9 @@ make up-all      # core + optional (Immich, Uptime Kuma)
 1. Open Syncthing web UI
 2. Add a folder pointing to `/data/paperless/consume` — sync this from your phone/laptop to auto-import documents into Paperless
 3. Add any other folders you want to sync under `/data/`
+
+**n8n** — open `http://<host>:5678` and create your owner account on first boot.
+Note: `N8N_ENCRYPTION_KEY` in `.env` encrypts all saved credentials — back it up alongside your `.env` file. If it is lost, any credentials stored in n8n become unreadable.
 
 **Immich** — open `http://<host>:2283` and create your admin account on first boot.
 
@@ -158,7 +168,7 @@ make reset-<name>        # wipe data and restart (destructive!)
 ```
 
 **Core:** `paperless-ngx` `miniflux` `syncthing` `filebrowser` `firefly`
-**Optional:** `immich` `uptime-kuma`
+**Optional:** `n8n` `immich` `uptime-kuma`
 
 ```bash
 # Examples

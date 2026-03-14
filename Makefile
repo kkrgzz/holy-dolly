@@ -2,7 +2,7 @@ include .env
 export
 
 CORE_SERVICES     := paperless-ngx miniflux syncthing filebrowser firefly
-OPTIONAL_SERVICES := immich uptime-kuma
+OPTIONAL_SERVICES := immich uptime-kuma n8n
 
 .PHONY: all init up up-all down down-all restart status logs help
 
@@ -25,7 +25,9 @@ init:
 		$(DATA_ROOT)/firefly/upload \
 		$(DATA_ROOT)/immich/pgdata \
 		$(DATA_ROOT)/immich/model-cache \
-		$(DATA_ROOT)/uptime-kuma
+		$(DATA_ROOT)/uptime-kuma \
+		$(DATA_ROOT)/n8n/pgdata \
+		$(DATA_ROOT)/n8n/data
 	@# HDD — bulk storage for documents, media, photos
 	@sudo mkdir -p \
 		$(HDD_ROOT)/paperless/consume \

@@ -1,0 +1,52 @@
+# n8n — workflow automation
+# Docs: https://docs.n8n.io/hosting/installation/docker/
+#
+# After first boot, open http://<host>:5678 to create your owner account.
+#
+# IMPORTANT: N8N_ENCRYPTION_KEY encrypts all saved credentials.
+# Back it up — if lost, all stored credentials become unreadable.
+
+services:
+  n8n-db:
+    image: postgres:16
+    container_name: n8n-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${N8N_DB_PASS}
+      POSTGRES_DB: n8n
+    volumes:
+      - ${DATA_ROOT}/n8n/pgdata:/var/lib/postgresql/data
+
+  n8n:
+    image: n8nio/n8n:1
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+    ports:
+      - "5678:5678"
+    environment:
+      # Database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n-db
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASS}
+      # Encryption key — protects all stored credentials. Keep this secret and backed up.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      # Public URL — required for webhooks to work correctly
+      N8N_HOST: n8n.${DOMAIN}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.${DOMAIN}/
+      GENERIC_TIMEZONE: ${TZ}
+    volumes:
+      - ${DATA_ROOT}/n8n/data:/home/node/.n8n
