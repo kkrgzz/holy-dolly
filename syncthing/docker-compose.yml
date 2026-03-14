@@ -1,25 +1,22 @@
 services:
   syncthing:
-    image: lscr.io/linuxserver/syncthing:latest
+    image: lscr.io/linuxserver/syncthing:1.29.7
     container_name: syncthing
-    hostname: raspi5-sync
+    hostname: ${SYNCTHING_HOSTNAME:-homelab-sync}
+    restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+    ports:
+      - "8384:8384"
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
     volumes:
       - ${DATA_ROOT}/syncthing/config:/config
-      - ${DOCS_ROOT}:/data/documents  # Mapping directly to where Paperless consumes
-      - ${MEDIA_ROOT}:/data/media
-    networks:
-      - web_network
-    ports:
-      - 8384:8384
-      - 22002:22000/tcp
-      - 22001:22000/udp
-      - 21027:21027/udp
-    restart: unless-stopped
-
-networks:
-  web_network:
-    external: true
+      # Entire HDD mounted — configure sync folders in the Syncthing web UI
+      # Recommended folders to set up:
+      #   /data/paperless/consume  → sync documents from phone/laptop → auto-imported by Paperless
+      #   /data/media              → sync media files between devices
+      - ${HDD_ROOT}:/data

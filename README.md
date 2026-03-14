@@ -1,118 +1,227 @@
-# Holy Dolly - Docker Stack
+# Holy Dolly — Homelab Docker Stack
 
-Self-hosted media and document management stack.
+Personal self-hosted services running inside a Proxmox VM, accessed via Nginx Proxy Manager (NPM) on a gateway VM, secured with Tailscale.
 
-## Services
+## Architecture
 
-- **Caddy** - Reverse proxy & automatic SSL (ports 80, 443)
-- **Paperless-NGX** - Document management (port 8000)
-- **Miniflux** - RSS reader (port 9090)
-- **Syncthing** - File synchronization (port 8384)
-- **Filebrowser** - Web file manager (port 8081)
-- **Jellyfin** - Media server (port 8096)
-- **Pi-hole** - DNS ad blocker (port 8053)
-- **Firefly III** - Personal finance manager (port 8082, importer port 8083)
+```
+Internet / Tailscale
+        │
+   Gateway VM
+   ├── Nginx Proxy Manager  (reverse proxy + SSL)
+   └── Tailscale            (secure remote access)
+        │
+   Docker VM  (this stack)
+   ├── Paperless-NGX  :8000
+   ├── Miniflux       :9090
+   ├── Syncthing      :8384
+   ├── Filebrowser    :8081
+   ├── Firefly III    :8082
+   └── Firefly Import :8083
 
-### Subdomain Mapping (via Caddy)
-
-| Service | URL |
-|---|---|
-| Paperless-NGX | `paperless.yourdomain.com` |
-| Miniflux | `miniflux.yourdomain.com` |
-| Syncthing | `syncthing.yourdomain.com` |
-| Filebrowser | `files.yourdomain.com` |
-| Jellyfin | `jellyfin.yourdomain.com` |
-| Pi-hole | `pihole.yourdomain.com` |
-| Firefly III | `firefly.yourdomain.com` |
-| Firefly Importer | `firefly-importer.yourdomain.com` |
-
-## Quick Start
-
-### First Time Setup
-```bash
-make init    # Create directories and set permissions
-make up      # Start all services
+   Proxmox LXC containers (not in this stack)
+   ├── Pi-hole        (DNS ad blocking)
+   └── Jellyfin       (media server)
 ```
 
-### Daily Usage
-```bash
-make status           # Check what's running
-make logs             # View all logs (Ctrl+C to exit)
-make restart          # Restart everything
-make reset            # Fresh install (deletes ALL data!)
+## Services & Ports
+
+Configure these in NPM as proxy hosts pointing to `<docker-vm-ip>:<port>`.
+
+### Core Services
+
+| Service | Port | Suggested Subdomain |
+|---|---|---|
+| Paperless-NGX | `8000` | `paperless.yourdomain.com` |
+| Miniflux | `9090` | `miniflux.yourdomain.com` |
+| Syncthing | `8384` | `syncthing.yourdomain.com` |
+| Filebrowser | `8081` | `files.yourdomain.com` |
+| Firefly III | `8082` | `firefly.yourdomain.com` |
+| Firefly Importer | `8083` | `firefly-importer.yourdomain.com` |
+
+### Optional Services
+
+| Service | Port | Suggested Subdomain |
+|---|---|---|
+| Immich | `2283` | `photos.yourdomain.com` |
+| Uptime Kuma | `3001` | `status.yourdomain.com` |
+
+> Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your firewall for device-to-device sync.
+
+## Storage Layout
+
+```
+SSD (DATA_ROOT)                    — fast I/O, backed up by Proxmox PBS
+├── paperless/
+│   ├── pgdata/                    database
+│   ├── redis/                     cache
+│   └── data/                      full-text search index
+├── miniflux/db/                   database
+├── syncthing/config/              sync config
+├── filebrowser/                   filebrowser database + settings
+├── firefly/
+│   ├── db/                        database
+│   └── upload/                    attachments (small, financial — keep on SSD)
+├── immich/
+│   ├── pgdata/                    database
+│   └── model-cache/               ML models for face detection
+└── uptime-kuma/                   monitoring data
+
+HDD (HDD_ROOT)                     — bulk storage, USB connected
+├── paperless/
+│   ├── consume/                   ← drop files here to import into Paperless
+│   │                                (Syncthing can sync directly to this folder)
+│   ├── media/                     processed documents
+│   └── export/                    manual exports
+└── immich/upload/                 photo and video library
 ```
 
-### Working with Individual Services
+## Setup
 
-Start/stop/restart a single service:
+### 1. Clone and configure
+
 ```bash
-make up-syncthing
-make down-syncthing
-make restart-syncthing
-make reset-syncthing      # Fresh install (deletes data!)
-make logs-syncthing
+git clone <repo-url> holy-dolly
+cd holy-dolly
+cp .env.template .env
+nano .env   # fill in all values
 ```
 
-Works with: `caddy`, `paperless-ngx`, `miniflux`, `syncthing`, `filebrowser`, `jellyfin`, `pihole`, `firefly`
+### 2. HDD — ensure nofail in fstab
 
-## Common Tasks
+If your HDD is not listed in `/etc/fstab` or is missing `nofail`, the VM can
+stall at boot if the USB drive is disconnected. Find your HDD UUID and add it:
 
-**Restart after config change:**
 ```bash
-make restart-syncthing
+# Find your HDD UUID
+blkid
+
+# Edit fstab
+sudo nano /etc/fstab
+
+# Add a line like this (replace UUID and /mnt/hdd with yours):
+UUID=xxxx-xxxx  /mnt/hdd  ext4  defaults,nofail,x-systemd.device-timeout=5  0  2
 ```
 
-**Fresh install after password change or corruption:**
+### 3. Create directories
+
 ```bash
-make reset-miniflux      # Just Miniflux
-make reset               # All services (nuclear option!)
+make init
 ```
 
-**Check service status:**
+### 4. Start services
+
 ```bash
-make status
+make up          # core services only
+make up-all      # core + optional (Immich, Uptime Kuma)
 ```
 
-**View specific service logs:**
+### 5. First-time service setup
+
+**Firefly III** — generate the importer token:
+1. Open Firefly III in browser
+2. Go to Options → Profile → Personal Access Tokens → Create
+3. Copy the token into `.env` as `FIREFLY_IMPORTER_TOKEN`
+4. Restart: `make restart-firefly`
+
+**Syncthing** — configure sync folders:
+1. Open Syncthing web UI
+2. Add a folder pointing to `/data/paperless/consume` — sync this from your phone/laptop to auto-import documents into Paperless
+3. Add any other folders you want to sync under `/data/`
+
+**Immich** — open `http://<host>:2283` and create your admin account on first boot.
+
+**Uptime Kuma** — open `http://<host>:3001`, create your admin account, then add monitors for each service URL.
+
+## Daily Commands
+
 ```bash
-make logs-miniflux
+make status              # show running containers and ports
+make up                  # start core services
+make down                # stop core services
+make up-all              # start everything
+make down-all            # stop everything
+make restart             # restart core services
+make logs                # recent logs from all core services
 ```
 
-**Stop everything:**
+## Single Service Commands
+
 ```bash
-make down
+make up-<name>           # start
+make down-<name>         # stop
+make restart-<name>      # restart
+make logs-<name>         # follow logs live (Ctrl+C to exit)
+make update-<name>       # pull latest image and restart
+make reset-<name>        # wipe data and restart (destructive!)
 ```
+
+**Core:** `paperless-ngx` `miniflux` `syncthing` `filebrowser` `firefly`
+**Optional:** `immich` `uptime-kuma`
+
+```bash
+# Examples
+make restart-miniflux
+make update-paperless-ngx
+make logs-firefly
+make up-immich
+```
+
+## Updating Services
+
+Images are pinned to major versions (e.g. `postgres:16`, `fireflyiii/core:6`).
+This prevents surprise breaking changes from auto-updates.
+
+To update a single service to the latest version within its pinned major:
+
+```bash
+make update-paperless-ngx
+```
+
+To intentionally upgrade to a new major version, edit the `image:` tag in the
+service's `docker-compose.yml`, then run `make update-<name>`.
+
+> **Immich** is an exception — it updates frequently and recommends staying
+> on the latest release. Pin `IMMICH_VERSION` in `.env` to a specific tag
+> (e.g. `v1.130.0`) when you want to control when you upgrade.
 
 ## Troubleshooting
 
-**Service won't start or keeps restarting?**
+**Service won't start or keeps restarting**
 ```bash
-make logs-[service-name]    # Check logs for errors
-docker ps -a                # See all containers including stopped ones
+make logs-<name>         # read the error message
+docker ps -a             # check exit codes
 ```
 
-**Password authentication errors or corrupted database?**
+**Database authentication error after changing a password in .env**
 ```bash
-make reset-miniflux         # Fresh install (deletes data!)
+make reset-<name>        # wipe and recreate (loses data in that service!)
 ```
 
-**Port conflicts?**
-Edit the `docker-compose.yml` file in the service folder and change the port mapping.
-
-**Need to completely reset everything?**
+**Port already in use**
 ```bash
-make reset                  # Nuclear option - fresh install of all services!
+sudo ss -tlnp | grep <port>   # find what's using the port
+# Then edit the port mapping in <service>/docker-compose.yml
 ```
 
-## File Locations
+**Paperless not importing files**
+```bash
+# Check that the consume directory is writable
+ls -la $(HDD_ROOT)/paperless/consume
+make logs-paperless-ngx
+```
 
-All data is stored in directories defined in `.env`:
-- `DATA_ROOT` - Service configs and databases
-- `MEDIA_ROOT` - Media files
-- `DOCS_ROOT` - Documents
+**Syncthing not syncing**
+- Ensure ports 22000/tcp, 22000/udp, 21027/udp are open on your VM firewall
+- Check the Syncthing web UI for connection errors
 
-## Notes
+**HDD not mounted after reboot**
+```bash
+sudo mount -a            # attempt to mount all fstab entries
+dmesg | tail -20         # check for USB/mount errors
+```
 
-- **Syncthing ports**: TCP 22002, UDP 22001 (modified for WSL2 compatibility)
-- All services connect via `web_network` Docker network
-- Services restart automatically on system reboot (`restart: unless-stopped`)
+**Immich ML is slow or spiking CPU**
+- This is normal on first run — it indexes all your photos
+- It is limited to 1 worker (`MACHINE_LEARNING_WORKERS=1`) to protect the mini PC
+- Indexing runs in the background; the app remains usable during it

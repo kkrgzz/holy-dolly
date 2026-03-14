@@ -1,0 +1,61 @@
+# Immich — self-hosted photo and video management
+# Docs: https://immich.app/docs/install/docker-compose
+#
+# IMPORTANT: Verify the postgres image tag against the official Immich release
+# notes before deploying — they occasionally update the required DB image.
+# Official compose reference: https://github.com/immich-app/immich/releases/latest
+#
+# After first boot, open http://<host>:2283 to create your admin account.
+# The machine-learning container handles face detection and search — it will
+# use CPU only (no GPU). Set MACHINE_LEARNING_WORKERS=1 to limit resource usage.
+
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: immich-server
+    restart: unless-stopped
+    depends_on:
+      - immich-redis
+      - immich-db
+    ports:
+      - "2283:2283"
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: immich
+      DB_PASSWORD: ${IMMICH_DB_PASS}
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      TZ: ${TZ}
+    volumes:
+      # HDD — photo and video library (large files)
+      - ${HDD_ROOT}/immich/upload:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    container_name: immich-machine-learning
+    restart: unless-stopped
+    environment:
+      # Limit to 1 worker to avoid CPU spikes on a mini PC
+      MACHINE_LEARNING_WORKERS: "1"
+    volumes:
+      # SSD — ML model cache (small, benefits from fast access)
+      - ${DATA_ROOT}/immich/model-cache:/cache
+
+  immich-redis:
+    image: redis:7.4-alpine
+    container_name: immich-redis
+    restart: unless-stopped
+
+  immich-db:
+    # Postgres with pgvecto.rs extension required by Immich
+    image: ghcr.io/immich-app/postgres:16-vectorchord0.3.0-pgvectors0.3.0
+    container_name: immich-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: immich
+      POSTGRES_PASSWORD: ${IMMICH_DB_PASS}
+      POSTGRES_DB: immich
+    volumes:
+      # SSD — database (fast I/O, backed up by PBS)
+      - ${DATA_ROOT}/immich/pgdata:/var/lib/postgresql/data

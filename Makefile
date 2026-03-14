@@ -1,108 +1,89 @@
-# Load environment variables
 include .env
 export
 
-# Default target
-.PHONY: all
+CORE_SERVICES     := paperless-ngx miniflux syncthing filebrowser firefly
+OPTIONAL_SERVICES := immich uptime-kuma
+
+.PHONY: all init up up-all down down-all restart status logs help
+
 all: init up
 
 # =============================================================================
-# INITIALIZATION (Run once)
+# INITIALIZATION (run once after cloning)
 # =============================================================================
 init:
-	@echo "--- Initializing Directories & Permissions ---"
-	@sudo mkdir -p $(DATA_ROOT)/filebrowser
-	@sudo mkdir -p $(DATA_ROOT)/paperless/redis
-	@sudo mkdir -p $(DATA_ROOT)/paperless/pgdata
-	@sudo mkdir -p $(DATA_ROOT)/paperless/data
-	@sudo mkdir -p $(DATA_ROOT)/paperless/media
-	@sudo mkdir -p $(DATA_ROOT)/paperless/export
-	@sudo mkdir -p $(DATA_ROOT)/miniflux/db
-	@sudo mkdir -p $(DATA_ROOT)/syncthing/config
-	@sudo mkdir -p $(DATA_ROOT)/jellyfin/config
-	@sudo mkdir -p $(DATA_ROOT)/jellyfin/cache
-	@sudo mkdir -p $(DATA_ROOT)/pihole/config
-	@sudo mkdir -p $(DATA_ROOT)/pihole/dnsmasq
-	@sudo mkdir -p $(DATA_ROOT)/firefly/db
-	@sudo mkdir -p $(DATA_ROOT)/firefly/upload
-	@sudo mkdir -p $(MEDIA_ROOT)
-	@sudo mkdir -p $(DOCS_ROOT)
-	@sudo mkdir -p $(DATA_ROOT)/caddy
+	@echo "==> Creating directories..."
+	@# SSD — fast storage for databases and app state
+	@sudo mkdir -p \
+		$(DATA_ROOT)/paperless/redis \
+		$(DATA_ROOT)/paperless/pgdata \
+		$(DATA_ROOT)/paperless/data \
+		$(DATA_ROOT)/miniflux/db \
+		$(DATA_ROOT)/syncthing/config \
+		$(DATA_ROOT)/filebrowser \
+		$(DATA_ROOT)/firefly/db \
+		$(DATA_ROOT)/firefly/upload \
+		$(DATA_ROOT)/immich/pgdata \
+		$(DATA_ROOT)/immich/model-cache \
+		$(DATA_ROOT)/uptime-kuma
+	@# HDD — bulk storage for documents, media, photos
+	@sudo mkdir -p \
+		$(HDD_ROOT)/paperless/consume \
+		$(HDD_ROOT)/paperless/media \
+		$(HDD_ROOT)/paperless/export \
+		$(HDD_ROOT)/immich/upload
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
 	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
-	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
-	@sudo chmod -R 755 $(DATA_ROOT) $(MEDIA_ROOT) $(DOCS_ROOT)
-	@echo "--- Done ---"
-
-network:
-	@docker network inspect web_network >/dev/null 2>&1 || docker network create web_network
+	@sudo chown -R $(PUID):$(PGID) \
+		$(DATA_ROOT) \
+		$(HDD_ROOT)/paperless \
+		$(HDD_ROOT)/immich
+	@sudo chmod -R 755 \
+		$(DATA_ROOT) \
+		$(HDD_ROOT)/paperless \
+		$(HDD_ROOT)/immich
+	@echo "==> Done. Copy .env.template to .env and fill in your values."
 
 # =============================================================================
-# ALL SERVICES
+# CORE SERVICES
 # =============================================================================
-up: network
-	@echo "--- Starting All Services ---"
-	@docker compose -f caddy/docker-compose.yml up -d --build
-	@docker compose -f paperless-ngx/docker-compose.yml up -d
-	@docker compose -f miniflux/docker-compose.yml up -d
-	@docker compose -f syncthing/docker-compose.yml up -d
-	@docker compose -f filebrowser/docker-compose.yml up -d
-	@docker compose -f jellyfin/docker-compose.yml up -d
-	@docker compose -f pihole/docker-compose.yml up -d
-	@docker compose -f firefly/docker-compose.yml up -d
+up:
+	@echo "==> Starting core services..."
+	@for svc in $(CORE_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml up -d; \
+	done
 
 down:
-	@echo "--- Stopping All Services ---"
-	@docker compose -f paperless-ngx/docker-compose.yml down
-	@docker compose -f miniflux/docker-compose.yml down
-	@docker compose -f syncthing/docker-compose.yml down
-	@docker compose -f filebrowser/docker-compose.yml down
-	@docker compose -f jellyfin/docker-compose.yml down
-	@docker compose -f pihole/docker-compose.yml down
-	@docker compose -f firefly/docker-compose.yml down
-	@docker compose -f caddy/docker-compose.yml down
+	@echo "==> Stopping core services..."
+	@for svc in $(CORE_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml down; \
+	done
 
 restart:
-	@echo "--- Restarting All Services ---"
-	@docker compose -f caddy/docker-compose.yml restart
-	@docker compose -f paperless-ngx/docker-compose.yml restart
-	@docker compose -f miniflux/docker-compose.yml restart
-	@docker compose -f syncthing/docker-compose.yml restart
-	@docker compose -f filebrowser/docker-compose.yml restart
-	@docker compose -f jellyfin/docker-compose.yml restart
-	@docker compose -f pihole/docker-compose.yml restart
-	@docker compose -f firefly/docker-compose.yml restart
+	@echo "==> Restarting core services..."
+	@for svc in $(CORE_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml restart; \
+	done
 
-logs:
-	@docker compose -f caddy/docker-compose.yml logs -f &
-	@docker compose -f paperless-ngx/docker-compose.yml logs -f &
-	@docker compose -f miniflux/docker-compose.yml logs -f &
-	@docker compose -f syncthing/docker-compose.yml logs -f &
-	@docker compose -f filebrowser/docker-compose.yml logs -f &
-	@docker compose -f jellyfin/docker-compose.yml logs -f &
-	@docker compose -f pihole/docker-compose.yml logs -f &
-	@docker compose -f firefly/docker-compose.yml logs -f
+# =============================================================================
+# ALL SERVICES (core + optional)
+# =============================================================================
+up-all:
+	@echo "==> Starting all services..."
+	@for svc in $(CORE_SERVICES) $(OPTIONAL_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml up -d; \
+	done
 
-reset:
-	@echo "--- Resetting All Services (removing all volumes/data) ---"
-	@docker compose -f caddy/docker-compose.yml down -v
-	@docker compose -f paperless-ngx/docker-compose.yml down -v
-	@docker compose -f miniflux/docker-compose.yml down -v
-	@docker compose -f syncthing/docker-compose.yml down -v
-	@docker compose -f filebrowser/docker-compose.yml down -v
-	@docker compose -f jellyfin/docker-compose.yml down -v
-	@docker compose -f pihole/docker-compose.yml down -v
-	@docker compose -f firefly/docker-compose.yml down -v
-	@make up
-	@echo "--- All services have been reset with fresh data ---"
-
-status:
-	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+down-all:
+	@echo "==> Stopping all services..."
+	@for svc in $(CORE_SERVICES) $(OPTIONAL_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml down; \
+	done
 
 # =============================================================================
 # INDIVIDUAL SERVICE CONTROLS
 # =============================================================================
-up-%: network
+up-%:
 	@docker compose -f $*/docker-compose.yml up -d
 
 down-%:
@@ -114,46 +95,61 @@ restart-%:
 logs-%:
 	@docker compose -f $*/docker-compose.yml logs -f
 
-reset-%:
-	@echo "--- Resetting $* (removing all volumes/data) ---"
-	@docker compose -f $*/docker-compose.yml down -v
-	@if [ "$*" = "miniflux" ]; then \
-		sudo rm -rf $(DATA_ROOT)/miniflux/db; \
-		sudo mkdir -p $(DATA_ROOT)/miniflux/db; \
-		sudo chown 999:$(PGID) $(DATA_ROOT)/miniflux/db; \
-	fi
-	@if [ "$*" = "paperless-ngx" ]; then \
-		sudo rm -rf $(DATA_ROOT)/paperless/{redis,pgdata,data,media}; \
-		sudo mkdir -p $(DATA_ROOT)/paperless/{redis,pgdata,data,media,export}; \
-		sudo chown -R $(PUID):$(PGID) $(DATA_ROOT)/paperless; \
-	fi
+update-%:
+	@echo "==> Updating $*..."
+	@docker compose -f $*/docker-compose.yml pull
 	@docker compose -f $*/docker-compose.yml up -d
-	@echo "--- $* has been reset with fresh data ---"
+	@echo "==> $* updated."
+
+reset-%:
+	@echo "==> WARNING: This will destroy all data for $*. Press Ctrl+C to cancel, Enter to continue."
+	@read _
+	@docker compose -f $*/docker-compose.yml down -v
+	@docker compose -f $*/docker-compose.yml up -d
+	@echo "==> $* has been reset."
+
+# =============================================================================
+# UTILITIES
+# =============================================================================
+status:
+	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+logs:
+	@for svc in $(CORE_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml logs --tail=20 2>/dev/null; \
+	done
 
 # =============================================================================
 # HELP
 # =============================================================================
 help:
-	@echo "Holy Dolly - Simple Docker Stack Manager"
+	@echo "Holy Dolly — Homelab Docker Stack"
 	@echo ""
-	@echo "COMMON COMMANDS:"
-	@echo "  make up                  - Start all services"
-	@echo "  make down                - Stop all services"
-	@echo "  make restart             - Restart all services"
-	@echo "  make reset               - Reset ALL services (delete all data!)"
-	@echo "  make status              - Show running containers"
-	@echo "  make logs                - View all logs"
+	@echo "SETUP:"
+	@echo "  make init              Create all required directories on SSD and HDD"
 	@echo ""
-	@echo "SINGLE SERVICE (replace % with service name):"
-	@echo "  make up-%                - Start one service"
-	@echo "  make down-%              - Stop one service"
-	@echo "  make restart-%           - Restart one service"
-	@echo "  make reset-%             - Reset service (delete all data and restart fresh)"
-	@echo "  make logs-%              - View service logs"
+	@echo "CORE COMMANDS:"
+	@echo "  make up                Start core services"
+	@echo "  make down              Stop core services"
+	@echo "  make restart           Restart core services"
+	@echo "  make up-all            Start everything (core + optional)"
+	@echo "  make down-all          Stop everything"
+	@echo "  make status            Show running containers and ports"
+	@echo "  make logs              Print recent logs from all core services"
 	@echo ""
-	@echo "Services: caddy, paperless-ngx, miniflux, syncthing, filebrowser, jellyfin, pihole, firefly"
+	@echo "SINGLE SERVICE:"
+	@echo "  make up-<name>         Start one service"
+	@echo "  make down-<name>       Stop one service"
+	@echo "  make restart-<name>    Restart one service"
+	@echo "  make logs-<name>       Follow logs live"
+	@echo "  make update-<name>     Pull latest image and restart"
+	@echo "  make reset-<name>      Wipe and restart (WARNING: deletes data!)"
+	@echo ""
+	@echo "CORE SERVICES:     $(CORE_SERVICES)"
+	@echo "OPTIONAL SERVICES: $(OPTIONAL_SERVICES)"
 	@echo ""
 	@echo "EXAMPLES:"
-	@echo "  make restart-syncthing   - Restart only Syncthing"
-	@echo "  make reset-miniflux      - Fresh install of Miniflux (deletes data!)"
-	@echo "  make logs-miniflux       - View Miniflux logs"
+	@echo "  make restart-miniflux"
+	@echo "  make update-paperless-ngx"
+	@echo "  make logs-firefly"
+	@echo "  make up-immich"

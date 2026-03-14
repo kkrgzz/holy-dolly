@@ -1,0 +1,16 @@
+# Uptime Kuma — self-hosted monitoring and alerting
+# Docs: https://github.com/louislam/uptime-kuma
+#
+# After first boot, open http://<host>:3001 to create your admin account.
+# Add monitors for each service URL and configure notification channels
+# (Telegram, email, etc.) to get alerted when a service goes down.
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - ${DATA_ROOT}/uptime-kuma:/app/data

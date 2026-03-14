@@ -1,53 +1,48 @@
 services:
-  broker:
-    image: docker.io/library/redis:7
+  paperless-redis:
+    image: redis:7.4-alpine
+    container_name: paperless-redis
     restart: unless-stopped
-    networks:
-      - web_network
     volumes:
       - ${DATA_ROOT}/paperless/redis:/data
 
-  db:
-    image: docker.io/library/postgres:16
+  paperless-db:
+    image: postgres:16
+    container_name: paperless-db
     restart: unless-stopped
-    networks:
-      - web_network
-    volumes:
-      - ${DATA_ROOT}/paperless/pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${PAPERLESS_DB_PASS}
+    volumes:
+      - ${DATA_ROOT}/paperless/pgdata:/var/lib/postgresql/data
 
-  webserver:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:2
+    container_name: paperless
     restart: unless-stopped
     depends_on:
-      - db
-      - broker
-    networks:
-      - web_network
+      - paperless-db
+      - paperless-redis
     ports:
       - "8000:8000"
     user: "${PUID}:${PGID}"
-    volumes:
-      - ${DATA_ROOT}/paperless/data:/usr/src/paperless/data
-      - ${DATA_ROOT}/paperless/media:/usr/src/paperless/media
-      - ${DATA_ROOT}/paperless/export:/usr/src/paperless/export
-      - ${DOCS_ROOT}:/usr/src/paperless/consume
     environment:
-      PAPERLESS_REDIS: redis://broker:6379
-      PAPERLESS_DBHOST: db
+      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_DBHOST: paperless-db
       PAPERLESS_DBUSER: ${POSTGRES_USER}
       PAPERLESS_DBPASS: ${PAPERLESS_DB_PASS}
       USER_MAP_UID: ${PUID}
       USER_MAP_GID: ${PGID}
       PAPERLESS_TIME_ZONE: ${TZ}
-      PAPERLESS_URL: https://paperless.${CADDY_DOMAIN}
-      PAPERLESS_CSRF_TRUSTED_ORIGINS: https://paperless.${CADDY_DOMAIN}
+      PAPERLESS_URL: https://paperless.${DOMAIN}
+      PAPERLESS_CSRF_TRUSTED_ORIGINS: https://paperless.${DOMAIN}
       PAPERLESS_USE_X_FORWARD_HOST: "true"
       PAPERLESS_USE_X_FORWARD_PORT: "true"
-
-networks:
-  web_network:
-    external: true
+    volumes:
+      # SSD — app state and full-text search index (fast I/O needed)
+      - ${DATA_ROOT}/paperless/data:/usr/src/paperless/data
+      # HDD — documents, exports, and incoming consume directory
+      - ${HDD_ROOT}/paperless/media:/usr/src/paperless/media
+      - ${HDD_ROOT}/paperless/export:/usr/src/paperless/export
+      - ${HDD_ROOT}/paperless/consume:/usr/src/paperless/consume
