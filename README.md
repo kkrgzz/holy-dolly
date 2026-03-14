@@ -144,7 +144,7 @@ Note: `N8N_ENCRYPTION_KEY` in `.env` encrypts all saved credentials — back it 
 
 **Immich** — open `http://<host>:2283` and create your admin account on first boot.
 
-**Uptime Kuma** — open `http://<host>:3001`, create your admin account, then add monitors for each service URL.
+**Uptime Kuma** — open `http://<host>:3001`, create your admin account, then add monitors for each service URL. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for a full setup guide.
 
 ## Daily Commands
 
