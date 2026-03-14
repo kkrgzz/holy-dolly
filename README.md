@@ -51,7 +51,8 @@ Configure these in NPM as proxy hosts pointing to `<docker-vm-ip>:<port>`.
 ## Storage Layout
 
 ```
-SSD (DATA_ROOT)                    — fast I/O, backed up by Proxmox PBS
+VM disk (DATA_ROOT=/opt/docker-data)   — regular directory, no mount needed
+                                           backed up automatically by Proxmox PBS
 ├── paperless/
 │   ├── pgdata/                    database
 │   ├── redis/                     cache
@@ -67,7 +68,7 @@ SSD (DATA_ROOT)                    — fast I/O, backed up by Proxmox PBS
 │   └── model-cache/               ML models for face detection
 └── uptime-kuma/                   monitoring data
 
-HDD (HDD_ROOT)                     — bulk storage, USB connected
+HDD (HDD_ROOT=/mnt/hdd)            — bulk storage, USB connected
 ├── paperless/
 │   ├── consume/                   ← drop files here to import into Paperless
 │   │                                (Syncthing can sync directly to this folder)
