@@ -39,6 +39,7 @@ services:
       PAPERLESS_CSRF_TRUSTED_ORIGINS: https://paperless.${DOMAIN}
       PAPERLESS_USE_X_FORWARD_HOST: "true"
       PAPERLESS_USE_X_FORWARD_PORT: "true"
+      PAPERLESS_OCR_LANGUAGES: tur+eng+deu+fra+ita+spa+por+rus
     volumes:
       # SSD — app state and full-text search index (fast I/O needed)
       - ${DATA_ROOT}/paperless/data:/usr/src/paperless/data
