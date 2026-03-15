@@ -1,0 +1,11 @@
+services:
+  trilium:
+    image: triliumnext/trilium:v0.102.1
+    container_name: trilium
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DATA_ROOT}/trilium:/home/node/trilium-data

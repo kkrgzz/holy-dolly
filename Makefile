@@ -1,12 +1,21 @@
 include .env
 export
 
-CORE_SERVICES     := paperless-ngx miniflux syncthing filebrowser firefly
-OPTIONAL_SERVICES := immich uptime-kuma n8n
+# =============================================================================
+# SERVICE GROUPS
+# Private machine: personal data — documents, finance, photos, files
+# Public machine:  productivity tools — RSS, automation, notes
+# =============================================================================
+PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma
+PUBLIC_SERVICES  := miniflux n8n trilium
+ALL_SERVICES     := $(PRIVATE_SERVICES) $(PUBLIC_SERVICES)
 
-.PHONY: all init up up-all down down-all restart status logs help
-
-all: setup init up
+.PHONY: all setup \
+        init-private init-public \
+        up-private up-public up-all \
+        down-private down-public down-all \
+        restart-private restart-public \
+        status logs help
 
 # =============================================================================
 # FIRST-TIME SETUP (run once after cloning)
@@ -15,26 +24,24 @@ setup:
 	@bash setup.sh
 
 # =============================================================================
-# INITIALIZATION (run once after cloning)
+# INITIALIZATION
+# Run once per machine before starting services for the first time.
+# init-private: private machine (creates SSD + HDD directories)
+# init-public:  public machine  (creates SSD directories only)
 # =============================================================================
-init:
-	@echo "==> Creating directories..."
-	@# SSD — fast storage for databases and app state
+init-private:
+	@echo "==> Initializing private machine directories..."
 	@sudo mkdir -p \
 		$(DATA_ROOT)/paperless/redis \
 		$(DATA_ROOT)/paperless/pgdata \
 		$(DATA_ROOT)/paperless/data \
-		$(DATA_ROOT)/miniflux/db \
 		$(DATA_ROOT)/syncthing/config \
 		$(DATA_ROOT)/filebrowser \
 		$(DATA_ROOT)/firefly/db \
 		$(DATA_ROOT)/firefly/upload \
 		$(DATA_ROOT)/immich/pgdata \
 		$(DATA_ROOT)/immich/model-cache \
-		$(DATA_ROOT)/uptime-kuma \
-		$(DATA_ROOT)/n8n/pgdata \
-		$(DATA_ROOT)/n8n/data
-	@# HDD — bulk storage for documents, media, photos
+		$(DATA_ROOT)/uptime-kuma
 	@sudo mkdir -p \
 		$(HDD_ROOT)/paperless/consume \
 		$(HDD_ROOT)/paperless/media \
@@ -50,46 +57,79 @@ init:
 		$(DATA_ROOT) \
 		$(HDD_ROOT)/paperless \
 		$(HDD_ROOT)/immich
-	@echo "==> Done. Copy .env.template to .env and fill in your values."
+	@echo "==> Done."
+
+init-public:
+	@echo "==> Initializing public machine directories..."
+	@sudo mkdir -p \
+		$(DATA_ROOT)/miniflux/db \
+		$(DATA_ROOT)/n8n/pgdata \
+		$(DATA_ROOT)/n8n/data \
+		$(DATA_ROOT)/trilium
+	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT)
+	@sudo chmod -R 755 $(DATA_ROOT)
+	@echo "==> Done."
 
 # =============================================================================
-# CORE SERVICES
+# PRIVATE SERVICES
 # =============================================================================
-up:
-	@echo "==> Starting core services..."
-	@for svc in $(CORE_SERVICES); do \
+up-private:
+	@echo "==> Starting private services..."
+	@for svc in $(PRIVATE_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml up -d; \
 	done
 
-down:
-	@echo "==> Stopping core services..."
-	@for svc in $(CORE_SERVICES); do \
+down-private:
+	@echo "==> Stopping private services..."
+	@for svc in $(PRIVATE_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml down; \
 	done
 
-restart:
-	@echo "==> Restarting core services..."
-	@for svc in $(CORE_SERVICES); do \
+restart-private:
+	@echo "==> Restarting private services..."
+	@for svc in $(PRIVATE_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml restart; \
 	done
 
 # =============================================================================
-# ALL SERVICES (core + optional)
+# PUBLIC SERVICES
+# =============================================================================
+up-public:
+	@echo "==> Starting public services..."
+	@for svc in $(PUBLIC_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml up -d; \
+	done
+
+down-public:
+	@echo "==> Stopping public services..."
+	@for svc in $(PUBLIC_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml down; \
+	done
+
+restart-public:
+	@echo "==> Restarting public services..."
+	@for svc in $(PUBLIC_SERVICES); do \
+		docker compose -f $$svc/docker-compose.yml restart; \
+	done
+
+# =============================================================================
+# ALL SERVICES
 # =============================================================================
 up-all:
 	@echo "==> Starting all services..."
-	@for svc in $(CORE_SERVICES) $(OPTIONAL_SERVICES); do \
+	@for svc in $(ALL_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml up -d; \
 	done
 
 down-all:
 	@echo "==> Stopping all services..."
-	@for svc in $(CORE_SERVICES) $(OPTIONAL_SERVICES); do \
+	@for svc in $(ALL_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml down; \
 	done
 
 # =============================================================================
 # INDIVIDUAL SERVICE CONTROLS
+# Works with any service name, e.g: make logs-paperless-ngx
 # =============================================================================
 up-%:
 	@docker compose -f $*/docker-compose.yml up -d
@@ -110,7 +150,8 @@ update-%:
 	@echo "==> $* updated."
 
 reset-%:
-	@echo "==> WARNING: This will destroy all data for $*. Press Ctrl+C to cancel, Enter to continue."
+	@echo "==> WARNING: This will destroy all data for $*."
+	@echo "==> Press Ctrl+C to cancel, or Enter to continue."
 	@read _
 	@docker compose -f $*/docker-compose.yml down -v
 	@docker compose -f $*/docker-compose.yml up -d
@@ -123,7 +164,7 @@ status:
 	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 logs:
-	@for svc in $(CORE_SERVICES); do \
+	@for svc in $(ALL_SERVICES); do \
 		docker compose -f $$svc/docker-compose.yml logs --tail=20 2>/dev/null; \
 	done
 
@@ -133,33 +174,40 @@ logs:
 help:
 	@echo "Holy Dolly — Homelab Docker Stack"
 	@echo ""
-	@echo "SETUP (run once, in order):"
-	@echo "  make setup             Copy .env.template and generate all secrets"
-	@echo "  make init              Create all required directories on SSD and HDD"
-	@echo "  make up                Start core services"
+	@echo "FIRST TIME (run in order):"
+	@echo "  make setup              Generate .env from template with random secrets"
+	@echo "  make init-private       Create directories for the private machine"
+	@echo "  make init-public        Create directories for the public machine"
 	@echo ""
-	@echo "CORE COMMANDS:"
-	@echo "  make up                Start core services"
-	@echo "  make down              Stop core services"
-	@echo "  make restart           Restart core services"
-	@echo "  make up-all            Start everything (core + optional)"
-	@echo "  make down-all          Stop everything"
-	@echo "  make status            Show running containers and ports"
-	@echo "  make logs              Print recent logs from all core services"
+	@echo "PRIVATE MACHINE:"
+	@echo "  make up-private         Start private services"
+	@echo "  make down-private       Stop private services"
+	@echo "  make restart-private    Restart private services"
+	@echo ""
+	@echo "PUBLIC MACHINE:"
+	@echo "  make up-public          Start public services"
+	@echo "  make down-public        Stop public services"
+	@echo "  make restart-public     Restart public services"
+	@echo ""
+	@echo "ALL SERVICES:"
+	@echo "  make up-all             Start everything"
+	@echo "  make down-all           Stop everything"
+	@echo "  make status             Show running containers and ports"
+	@echo "  make logs               Print recent logs from all services"
 	@echo ""
 	@echo "SINGLE SERVICE:"
-	@echo "  make up-<name>         Start one service"
-	@echo "  make down-<name>       Stop one service"
-	@echo "  make restart-<name>    Restart one service"
-	@echo "  make logs-<name>       Follow logs live"
-	@echo "  make update-<name>     Pull latest image and restart"
-	@echo "  make reset-<name>      Wipe and restart (WARNING: deletes data!)"
+	@echo "  make up-<name>          Start one service"
+	@echo "  make down-<name>        Stop one service"
+	@echo "  make restart-<name>     Restart one service"
+	@echo "  make logs-<name>        Follow logs live"
+	@echo "  make update-<name>      Pull latest image and restart"
+	@echo "  make reset-<name>       Wipe and restart (WARNING: deletes data!)"
 	@echo ""
-	@echo "CORE SERVICES:     $(CORE_SERVICES)"
-	@echo "OPTIONAL SERVICES: $(OPTIONAL_SERVICES)"
+	@echo "PRIVATE:  $(PRIVATE_SERVICES)"
+	@echo "PUBLIC:   $(PUBLIC_SERVICES)"
 	@echo ""
 	@echo "EXAMPLES:"
 	@echo "  make restart-miniflux"
 	@echo "  make update-paperless-ngx"
-	@echo "  make logs-firefly"
-	@echo "  make up-immich"
+	@echo "  make logs-n8n"
+	@echo "  make up-trilium"
