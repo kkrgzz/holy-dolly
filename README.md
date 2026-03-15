@@ -1,106 +1,137 @@
 # Holy Dolly — Homelab Docker Stack
 
-Personal self-hosted services running inside a Proxmox VM, accessed via Nginx Proxy Manager (NPM) on a gateway VM, secured with Tailscale.
+Personal self-hosted services running inside Proxmox VMs, accessed via Nginx Proxy Manager (NPM) and secured with Tailscale.
+
+---
 
 ## Architecture
 
 ```
 Internet / Tailscale
         │
-   Gateway VM
-   ├── Nginx Proxy Manager  (reverse proxy + SSL)
-   └── Tailscale            (secure remote access)
-        │
-   Docker VM  (this stack)
-   ├── Paperless-NGX  :8000
-   ├── Miniflux       :9090
-   ├── Syncthing      :8384
-   ├── Filebrowser    :8081
-   ├── Firefly III    :8082
-   ├── Firefly Import :8083
-   ├── n8n            :5678  (optional)
-   ├── Immich         :2283  (optional)
-   └── Uptime Kuma    :3001  (optional)
+        ├── Private Gateway VM          ├── Public Gateway VM
+        │   └── NPM + Tailscale         │   └── NPM + Tailscale
+        │           │                   │           │
+        │   Private Docker VM           │   Public Docker VM
+        │   (personal data)             │   (productivity tools)
+        │   ├── Paperless-NGX  :8000    │   ├── Miniflux       :9090
+        │   ├── Firefly III    :8082    │   ├── n8n            :5678
+        │   ├── Firefly Import :8083    │   └── Trilium Notes  :8085
+        │   ├── Filebrowser    :8081    │
+        │   ├── Syncthing      :8384    │
+        │   ├── Immich         :2283    │
+        │   └── Uptime Kuma    :3001    │
+        │           │
+        │   External USB HDD
+        │   ├── paperless/consume/      ← drop zone for document import
+        │   ├── paperless/media/        ← processed documents
+        │   └── immich/upload/          ← photo and video library
 
-   Proxmox LXC containers (not in this stack)
-   ├── Pi-hole        (DNS ad blocking)
-   └── Jellyfin       (media server)
+Proxmox LXC containers (not in this stack)
+├── Pi-hole    (DNS ad blocking)
+└── Jellyfin   (media server)
 ```
 
-## Services & Ports
+---
 
-Configure these in NPM as proxy hosts pointing to `<docker-vm-ip>:<port>`.
+## NPM Proxy Table
 
-### Core Services
+Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
+
+### Private Machine
 
 | Service | Port | Suggested Subdomain |
-|---|---|---|
+|---------|------|---------------------|
 | Paperless-NGX | `8000` | `paperless.yourdomain.com` |
-| Miniflux | `9090` | `miniflux.yourdomain.com` |
-| Syncthing | `8384` | `syncthing.yourdomain.com` |
-| Filebrowser | `8081` | `files.yourdomain.com` |
 | Firefly III | `8082` | `firefly.yourdomain.com` |
 | Firefly Importer | `8083` | `firefly-importer.yourdomain.com` |
-
-### Optional Services
-
-| Service | Port | Suggested Subdomain |
-|---|---|---|
-| n8n | `5678` | `n8n.yourdomain.com` |
+| Filebrowser | `8081` | `files.yourdomain.com` |
+| Syncthing | `8384` | `syncthing.yourdomain.com` |
 | Immich | `2283` | `photos.yourdomain.com` |
 | Uptime Kuma | `3001` | `status.yourdomain.com` |
 
-> Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your firewall for device-to-device sync.
+### Public Machine
+
+| Service | Port | Suggested Subdomain |
+|---------|------|---------------------|
+| Miniflux | `9090` | `miniflux.yourdomain.com` |
+| n8n | `5678` | `n8n.yourdomain.com` |
+| Trilium Notes | `8085` | `notes.yourdomain.com` |
+
+> Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your VM firewall for device-to-device sync.
+
+---
 
 ## Storage Layout
 
 ```
-VM disk (DATA_ROOT=/opt/docker-data)   — regular directory, no mount needed
-                                           backed up automatically by Proxmox PBS
-├── paperless/
-│   ├── pgdata/                    database
-│   ├── redis/                     cache
-│   └── data/                      full-text search index
-├── miniflux/db/                   database
-├── syncthing/config/              sync config
-├── filebrowser/                   filebrowser database + settings
-├── firefly/
-│   ├── db/                        database
-│   └── upload/                    attachments (small, financial — keep on SSD)
-├── immich/
-│   ├── pgdata/                    database
-│   └── model-cache/               ML models for face detection
-├── n8n/
-│   ├── pgdata/                    database
-│   └── data/                      encryption keys, workflow files
-└── uptime-kuma/                   monitoring data
+VM disk  (DATA_ROOT=/opt/docker-data)
+│  Regular directory on the VM filesystem — no mount needed.
+│  Backed up automatically by Proxmox PBS with the VM snapshot.
+│
+├── paperless/pgdata/          PostgreSQL database
+├── paperless/redis/           Redis cache
+├── paperless/data/            Full-text search index
+├── miniflux/db/               PostgreSQL database
+├── syncthing/config/          Syncthing config
+├── filebrowser/               Filebrowser database + settings
+├── firefly/db/                MariaDB database
+├── firefly/upload/            Financial attachments (small, critical — SSD)
+├── immich/pgdata/             PostgreSQL database
+├── immich/model-cache/        ML models for face/object detection
+├── n8n/pgdata/                PostgreSQL database
+├── n8n/data/                  Encryption keys, workflow files
+├── trilium/                   Notes database
+└── uptime-kuma/               Monitoring data
 
-HDD (HDD_ROOT=/mnt/hdd)            — bulk storage, USB connected
-├── paperless/
-│   ├── consume/                   ← drop files here to import into Paperless
-│   │                                (Syncthing can sync directly to this folder)
-│   ├── media/                     processed documents
-│   └── export/                    manual exports
-└── immich/upload/                 photo and video library
+External HDD  (HDD_ROOT=/mnt/hdd)
+│  USB-connected bulk storage — private machine only.
+│  Not covered by PBS. Back up critical data with rclone to cloud storage.
+│
+├── paperless/consume/         ← Drop files here to auto-import into Paperless
+│                                (Syncthing on your phone syncs directly here)
+├── paperless/media/           Processed document files
+├── paperless/export/          Manual exports
+└── immich/upload/             Photo and video library
 ```
 
-## Setup
+---
 
-### 1. Clone and generate secrets
+## First Time Setup
+
+### 1. Clone the repo
 
 ```bash
 git clone <repo-url> holy-dolly
 cd holy-dolly
-make setup   # copies .env.template → .env and generates all secrets
 ```
 
-Then open `.env` and fill in the remaining fields the script tells you about:
-`PUID`, `PGID`, `TZ`, `DOMAIN`, `HDD_ROOT`, `SYNCTHING_HOSTNAME`
+### 2. Generate secrets
 
-### 2. HDD — ensure nofail in fstab
+```bash
+make setup
+```
 
-If your HDD is not listed in `/etc/fstab` or is missing `nofail`, the VM can
-stall at boot if the USB drive is disconnected. Find your HDD UUID and add it:
+This copies `.env.template` → `.env` and generates all passwords and keys automatically.
+
+Then open `.env` and fill in the fields the script lists as needing manual input:
+
+```bash
+nano .env
+```
+
+| Variable | What to set |
+|----------|-------------|
+| `PUID` / `PGID` | Run `id` — use your user's uid and gid |
+| `TZ` | Your timezone, e.g. `Europe/Istanbul` |
+| `DOMAIN` | Your domain, e.g. `example.com` |
+| `HDD_ROOT` | Your HDD mount path, e.g. `/mnt/hdd` *(private machine only)* |
+| `SYNCTHING_HOSTNAME` | A recognizable name for this device *(private machine only)* |
+| `FIREFLY_IMPORTER_TOKEN` | Fill in after first Firefly login *(see below)* |
+
+### 3. HDD fstab entry *(private machine only)*
+
+Add `nofail` to your HDD's fstab entry so the VM boots normally even if the USB drive is disconnected:
 
 ```bash
 # Find your HDD UUID
@@ -109,53 +140,78 @@ blkid
 # Edit fstab
 sudo nano /etc/fstab
 
-# Add a line like this (replace UUID and /mnt/hdd with yours):
+# Add this line (replace UUID and path with yours):
 UUID=xxxx-xxxx  /mnt/hdd  ext4  defaults,nofail,x-systemd.device-timeout=5  0  2
+
+# Verify without rebooting
+sudo mount -a
 ```
 
-### 3. Create directories
+### 4. Create directories
 
 ```bash
-make init
+# Private machine
+make init-private
+
+# Public machine
+make init-public
 ```
 
-### 4. Start services
+### 5. Start services
 
 ```bash
-make up          # core services only
-make up-all      # core + optional (n8n, Immich, Uptime Kuma)
+# Private machine
+make up-private
+
+# Public machine
+make up-public
+
+# Everything (if running both on one machine)
+make up-all
 ```
 
-### 5. First-time service setup
+### 6. Post-start service setup
 
 **Firefly III** — generate the importer token:
-1. Open Firefly III in browser
-2. Go to Options → Profile → Personal Access Tokens → Create
+1. Open Firefly III in your browser
+2. Options → Profile → Personal Access Tokens → Create new token
 3. Copy the token into `.env` as `FIREFLY_IMPORTER_TOKEN`
-4. Restart: `make restart-firefly`
+4. `make restart-firefly`
 
 **Syncthing** — configure sync folders:
-1. Open Syncthing web UI
-2. Add a folder pointing to `/data/paperless/consume` — sync this from your phone/laptop to auto-import documents into Paperless
-3. Add any other folders you want to sync under `/data/`
+1. Open the Syncthing web UI
+2. Add a folder pointing to `/data/paperless/consume` and sync it from your phone/laptop
+3. Files synced here are automatically picked up and imported by Paperless
 
 **n8n** — open `http://<host>:5678` and create your owner account on first boot.
-Note: `N8N_ENCRYPTION_KEY` in `.env` encrypts all saved credentials — back it up alongside your `.env` file. If it is lost, any credentials stored in n8n become unreadable.
+`N8N_ENCRYPTION_KEY` in `.env` encrypts all saved credentials — back it up. If lost, all stored credentials become unreadable.
+
+**Trilium Notes** — open `http://<host>:8085` and create your account on first boot.
 
 **Immich** — open `http://<host>:2283` and create your admin account on first boot.
 
-**Uptime Kuma** — open `http://<host>:3001`, create your admin account, then add monitors for each service URL. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for a full setup guide.
+**Uptime Kuma** — open `http://<host>:3001`, create your admin account, add monitors for each service. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for the full guide.
+
+---
 
 ## Daily Commands
 
 ```bash
-make status              # show running containers and ports
-make up                  # start core services
-make down                # stop core services
-make up-all              # start everything
-make down-all            # stop everything
-make restart             # restart core services
-make logs                # recent logs from all core services
+make status              # show all running containers and ports
+
+# Private machine
+make up-private
+make down-private
+make restart-private
+
+# Public machine
+make up-public
+make down-public
+make restart-public
+
+# Everything
+make up-all
+make down-all
 ```
 
 ## Single Service Commands
@@ -169,81 +225,81 @@ make update-<name>       # pull latest image and restart
 make reset-<name>        # wipe data and restart (destructive!)
 ```
 
-**Core:** `paperless-ngx` `miniflux` `syncthing` `filebrowser` `firefly`
-**Optional:** `n8n` `immich` `uptime-kuma`
+**Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `uptime-kuma`
+**Public:** `miniflux` `n8n` `trilium`
 
 ```bash
 # Examples
 make restart-miniflux
 make update-paperless-ngx
-make logs-firefly
-make up-immich
+make logs-n8n
+make reset-trilium
 ```
+
+---
 
 ## Updating Services
 
-Infrastructure images (`postgres:16`, `redis:7.4-alpine`, `mariadb:11.4`) are
-pinned to minor versions. App images use `latest` by default.
-
-**How to pin an app image after first deploy (recommended):**
+All images are pinned to specific versions. To update a service:
 
 ```bash
-# Find the exact version that is currently running
-docker inspect paperless | grep -i '"Image"'
-
-# Edit the image tag in the compose file to that version
-nano paperless-ngx/docker-compose.yml
-
-# Example result:
-#   image: ghcr.io/paperless-ngx/paperless-ngx:2.14.7
+# 1. Check the project's releases page for the new version
+# 2. Edit the image tag in the service's docker-compose.yml
+# 3. Apply the update
+make update-<name>
 ```
 
-Do this for each service once you confirm it is working. From that point,
-`make update-<name>` will only apply patch updates within that version.
+To find the currently running version:
+```bash
+docker inspect <container-name> | grep '"Image"'
+```
 
-To intentionally upgrade, edit the `image:` tag and run `make update-<name>`.
+> **Immich** updates very frequently. Pin `IMMICH_VERSION` in `.env` to a specific
+> tag (e.g. `v1.130.0`) and update it intentionally rather than following `release`.
 
-> **Immich** is an exception — it updates frequently and recommends staying
-> on the latest release. Pin `IMMICH_VERSION` in `.env` to a specific tag
-> (e.g. `v1.130.0`) when you want to control when you upgrade.
+---
 
 ## Troubleshooting
 
 **Service won't start or keeps restarting**
 ```bash
-make logs-<name>         # read the error message
+make logs-<name>         # read the error
 docker ps -a             # check exit codes
 ```
 
 **Database authentication error after changing a password in .env**
 ```bash
-make reset-<name>        # wipe and recreate (loses data in that service!)
+# The database still has the old password — wipe and recreate
+make reset-<name>        # WARNING: deletes all data for that service
 ```
 
 **Port already in use**
 ```bash
-sudo ss -tlnp | grep <port>   # find what's using the port
-# Then edit the port mapping in <service>/docker-compose.yml
+sudo ss -tlnp | grep <port>
+# Edit the port in <service>/docker-compose.yml
 ```
 
 **Paperless not importing files**
 ```bash
-# Check that the consume directory is writable
-ls -la $(HDD_ROOT)/paperless/consume
+ls -la $HDD_ROOT/paperless/consume   # check permissions
 make logs-paperless-ngx
 ```
 
 **Syncthing not syncing**
-- Ensure ports 22000/tcp, 22000/udp, 21027/udp are open on your VM firewall
+- Ensure ports `22000/tcp`, `22000/udp`, `21027/udp` are open on the VM firewall
 - Check the Syncthing web UI for connection errors
 
 **HDD not mounted after reboot**
 ```bash
-sudo mount -a            # attempt to mount all fstab entries
+sudo mount -a            # mount all fstab entries
 dmesg | tail -20         # check for USB/mount errors
 ```
 
-**Immich ML is slow or spiking CPU**
-- This is normal on first run — it indexes all your photos
-- It is limited to 1 worker (`MACHINE_LEARNING_WORKERS=1`) to protect the mini PC
-- Indexing runs in the background; the app remains usable during it
+**Uptime Kuma shows service as down**
+- Use `http://host.docker.internal:<port>` as the monitor URL, not `localhost`
+- Requires `extra_hosts: host.docker.internal:host-gateway` in the compose file (already set)
+
+**Immich ML slow or spiking CPU on first run**
+- Normal — it is indexing all photos for face/object detection
+- Limited to 1 worker (`MACHINE_LEARNING_WORKERS=1`) to protect the mini PC
+- Runs in the background; the app stays usable during indexing
