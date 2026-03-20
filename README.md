@@ -59,6 +59,7 @@ Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
 | Miniflux | `9090` | `miniflux.yourdomain.com` |
 | n8n | `5678` | `n8n.yourdomain.com` |
 | Trilium Notes | `8085` | `notes.yourdomain.com` |
+| Wallabag | `9091` | `read.yourdomain.com` |
 
 > Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your VM firewall for device-to-device sync.
 
@@ -85,7 +86,9 @@ VM disk  (DATA_ROOT=/opt/docker-data)
 ├── n8n/pgdata/                PostgreSQL database
 ├── n8n/data/                  Encryption keys, workflow files
 ├── trilium/                   Notes database
-└── uptime-kuma/               Monitoring data
+├── uptime-kuma/               Monitoring data
+├── wallabag/db/               MariaDB database
+└── wallabag/images/           Article thumbnails and cached images
 
 External HDD  (HDD_ROOT=/mnt/hdd)
 │  USB-connected bulk storage — private machine only.
@@ -96,7 +99,12 @@ External HDD  (HDD_ROOT=/mnt/hdd)
 ├── paperless/media/           Processed document files
 ├── paperless/export/          Manual exports
 ├── immich/upload/             Photo and video library
-└── kavita/library/            Manga, ebooks, and comics (add via UI)
+└── kavita/library/            Manga, ebooks, and comics
+    ├── manga/                 → Kavita library type: Manga
+    ├── comics/                → Kavita library type: Comics
+    ├── novels/                → Kavita library type: Book
+    ├── textbooks/             → Kavita library type: Book
+    └── manuals/               → Kavita library type: Book
 ```
 
 ---
@@ -195,7 +203,13 @@ make up-all
 **Immich** — open `http://<host>:2283` and create your admin account on first boot.
 
 **Kavita** — open `http://<host>:5000/registration` to create your admin account on first boot.
-Then go to **Settings → Libraries** and add a library pointing to `/books`.
+Go to **Settings → Libraries** and add one library per subdirectory, selecting the correct type:
+- `/books/manga` → type **Manga**, `/books/comics` → type **Comics**
+- `/books/novels`, `/books/textbooks`, `/books/manuals` → type **Book**
+
+**Wallabag** — open `http://<host>:9091` and log in with `wallabag` / `wallabag`. **Change the password immediately.**
+Once the app loads successfully, set `POPULATE_DATABASE: "false"` in [wallabag/docker-compose.yml](wallabag/docker-compose.yml) and run `make restart-wallabag`.
+To connect Miniflux: open Miniflux → **Settings → Integrations → Wallabag** and enter your Wallabag URL and credentials.
 
 **Uptime Kuma** — open `http://<host>:3001`, create your admin account, add monitors for each service. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for the full guide.
 
@@ -233,7 +247,7 @@ make reset-<name>        # wipe data and restart (destructive!)
 ```
 
 **Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `kavita` `uptime-kuma`
-**Public:** `miniflux` `n8n` `trilium`
+**Public:** `miniflux` `n8n` `trilium` `wallabag`
 
 ```bash
 # Examples

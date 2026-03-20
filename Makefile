@@ -7,7 +7,7 @@ export
 # Public machine:  productivity tools — RSS, automation, notes
 # =============================================================================
 PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma kavita
-PUBLIC_SERVICES  := miniflux n8n trilium
+PUBLIC_SERVICES  := miniflux n8n trilium wallabag
 ALL_SERVICES     := $(PRIVATE_SERVICES) $(PUBLIC_SERVICES)
 
 .PHONY: all setup \
@@ -48,7 +48,11 @@ init-private:
 		$(HDD_ROOT)/paperless/media \
 		$(HDD_ROOT)/paperless/export \
 		$(HDD_ROOT)/immich/upload \
-		$(HDD_ROOT)/kavita/library
+		$(HDD_ROOT)/kavita/library/manga \
+		$(HDD_ROOT)/kavita/library/comics \
+		$(HDD_ROOT)/kavita/library/novels \
+		$(HDD_ROOT)/kavita/library/textbooks \
+		$(HDD_ROOT)/kavita/library/manuals
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
 	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
 	@sudo chown -R $(PUID):$(PGID) \
@@ -65,7 +69,9 @@ init-public:
 		$(DATA_ROOT)/miniflux/db \
 		$(DATA_ROOT)/n8n/pgdata \
 		$(DATA_ROOT)/n8n/data \
-		$(DATA_ROOT)/trilium
+		$(DATA_ROOT)/trilium \
+		$(DATA_ROOT)/wallabag/db \
+		$(DATA_ROOT)/wallabag/images
 	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT)
 	@sudo chmod -R 755 $(DATA_ROOT)
 	@echo "==> Done."

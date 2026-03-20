@@ -16,5 +16,11 @@ services:
     volumes:
       # SSD — SQLite DB, app config, JWT key (auto-generated on first run)
       - ${DATA_ROOT}/kavita/config:/kavita/config
-      # HDD — your manga, ebooks, and comics library
+      # HDD — library root, mounted as /books inside the container.
+      # Create a separate Kavita library for each subdirectory:
+      #   /books/manga      → library type: Manga
+      #   /books/comics     → library type: Comics
+      #   /books/novels     → library type: Book
+      #   /books/textbooks  → library type: Book
+      #   /books/manuals    → library type: Book
       - ${HDD_ROOT}/kavita/library:/books
