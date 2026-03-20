@@ -2,7 +2,13 @@
 # Docs: https://doc.wallabag.org/admin/installation/installation-with-docker
 #
 # Default credentials: wallabag / wallabag — change immediately after first login.
-# After the first successful start, set POPULATE_DATABASE to "false" and restart.
+#
+# FIRST-TIME SETUP (required — auto-population is unreliable with MariaDB):
+#   1. make up-wallabag
+#   2. docker exec -it wallabag php bin/console wallabag:install --env=prod -n
+#   3. docker exec -it wallabag chown -R nobody:nobody /var/www/wallabag
+#   4. make restart-wallabag
+#
 # Miniflux integration: Settings → Integrations → Wallabag in the Miniflux UI.
 
 services:
@@ -36,8 +42,7 @@ services:
       SYMFONY__ENV__SECRET: ${WALLABAG_SECRET}
       SYMFONY__ENV__DOMAIN_NAME: https://wallabag.${DOMAIN}
       SYMFONY__ENV__FOSUSER_REGISTRATION: "false"
-      # Set to "false" after the first successful start, then: make restart-wallabag
-      POPULATE_DATABASE: "true"
+      POPULATE_DATABASE: "false"
     volumes:
       # SSD — article thumbnails and cached images
       - ${DATA_ROOT}/wallabag/images:/var/www/wallabag/web/assets/images
