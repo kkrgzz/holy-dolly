@@ -53,14 +53,10 @@ init-private:
 	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
 	@sudo chown -R $(PUID):$(PGID) \
 		$(DATA_ROOT) \
-		$(HDD_ROOT)/paperless \
-		$(HDD_ROOT)/immich \
-		$(HDD_ROOT)/kavita
+		$(HDD_ROOT)
 	@sudo chmod -R 755 \
 		$(DATA_ROOT) \
-		$(HDD_ROOT)/paperless \
-		$(HDD_ROOT)/immich \
-		$(HDD_ROOT)/kavita
+		$(HDD_ROOT)
 	@echo "==> Done."
 
 init-public:

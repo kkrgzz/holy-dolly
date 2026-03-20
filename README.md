@@ -20,6 +20,7 @@ Internet / Tailscale
         │   ├── Filebrowser    :8081    │
         │   ├── Syncthing      :8384    │
         │   ├── Immich         :2283    │
+        │   ├── Kavita         :5000    │
         │   └── Uptime Kuma    :3001    │
         │           │
         │   External USB HDD
@@ -48,6 +49,7 @@ Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
 | Filebrowser | `8081` | `files.yourdomain.com` |
 | Syncthing | `8384` | `syncthing.yourdomain.com` |
 | Immich | `2283` | `photos.yourdomain.com` |
+| Kavita | `5000` | `library.yourdomain.com` |
 | Uptime Kuma | `3001` | `status.yourdomain.com` |
 
 ### Public Machine
@@ -79,6 +81,7 @@ VM disk  (DATA_ROOT=/opt/docker-data)
 ├── firefly/upload/            Financial attachments (small, critical — SSD)
 ├── immich/pgdata/             PostgreSQL database
 ├── immich/model-cache/        ML models for face/object detection
+├── kavita/config/             SQLite DB, app config, JWT key
 ├── n8n/pgdata/                PostgreSQL database
 ├── n8n/data/                  Encryption keys, workflow files
 ├── trilium/                   Notes database
@@ -92,7 +95,8 @@ External HDD  (HDD_ROOT=/mnt/hdd)
 │                                (Syncthing on your phone syncs directly here)
 ├── paperless/media/           Processed document files
 ├── paperless/export/          Manual exports
-└── immich/upload/             Photo and video library
+├── immich/upload/             Photo and video library
+└── kavita/library/            Manga, ebooks, and comics (add via UI)
 ```
 
 ---
@@ -190,6 +194,9 @@ make up-all
 
 **Immich** — open `http://<host>:2283` and create your admin account on first boot.
 
+**Kavita** — open `http://<host>:5000/registration` to create your admin account on first boot.
+Then go to **Settings → Libraries** and add a library pointing to `/books`.
+
 **Uptime Kuma** — open `http://<host>:3001`, create your admin account, add monitors for each service. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for the full guide.
 
 ---
@@ -225,7 +232,7 @@ make update-<name>       # pull latest image and restart
 make reset-<name>        # wipe data and restart (destructive!)
 ```
 
-**Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `uptime-kuma`
+**Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `kavita` `uptime-kuma`
 **Public:** `miniflux` `n8n` `trilium`
 
 ```bash
@@ -278,6 +285,14 @@ make reset-<name>        # WARNING: deletes all data for that service
 sudo ss -tlnp | grep <port>
 # Edit the port in <service>/docker-compose.yml
 ```
+
+**Filebrowser shows 403 / cannot create folders or upload**
+```bash
+# The HDD directories are owned by root — fix ownership for the whole HDD
+sudo chown -R $PUID:$PGID $HDD_ROOT
+sudo chmod -R 755 $HDD_ROOT
+```
+For new installs, `make init-private` handles this automatically.
 
 **Paperless not importing files**
 ```bash
