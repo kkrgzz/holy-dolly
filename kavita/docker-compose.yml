@@ -1,0 +1,20 @@
+# Kavita — self-hosted manga, comic, and book reader
+# Docs: https://wiki.kavitareader.com/en/install/docker
+#
+# After first boot, open http://<host>:5000/registration to create your admin account.
+# Add your library in the UI: point it to /books (mapped from HDD_ROOT/kavita/library).
+
+services:
+  kavita:
+    image: ghcr.io/kareadita/kavita:0.8.3.3
+    container_name: kavita
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      # SSD — SQLite DB, app config, JWT key (auto-generated on first run)
+      - ${DATA_ROOT}/kavita/config:/kavita/config
+      # HDD — your manga, ebooks, and comics library
+      - ${HDD_ROOT}/kavita/library:/books

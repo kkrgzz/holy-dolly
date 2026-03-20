@@ -6,7 +6,7 @@ export
 # Private machine: personal data — documents, finance, photos, files
 # Public machine:  productivity tools — RSS, automation, notes
 # =============================================================================
-PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma
+PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma kavita
 PUBLIC_SERVICES  := miniflux n8n trilium
 ALL_SERVICES     := $(PRIVATE_SERVICES) $(PUBLIC_SERVICES)
 
@@ -41,22 +41,26 @@ init-private:
 		$(DATA_ROOT)/firefly/upload \
 		$(DATA_ROOT)/immich/pgdata \
 		$(DATA_ROOT)/immich/model-cache \
-		$(DATA_ROOT)/uptime-kuma
+		$(DATA_ROOT)/uptime-kuma \
+		$(DATA_ROOT)/kavita/config
 	@sudo mkdir -p \
 		$(HDD_ROOT)/paperless/consume \
 		$(HDD_ROOT)/paperless/media \
 		$(HDD_ROOT)/paperless/export \
-		$(HDD_ROOT)/immich/upload
+		$(HDD_ROOT)/immich/upload \
+		$(HDD_ROOT)/kavita/library
 	@sudo touch $(DATA_ROOT)/filebrowser/filebrowser.db
 	@sudo touch $(DATA_ROOT)/filebrowser/settings.json
 	@sudo chown -R $(PUID):$(PGID) \
 		$(DATA_ROOT) \
 		$(HDD_ROOT)/paperless \
-		$(HDD_ROOT)/immich
+		$(HDD_ROOT)/immich \
+		$(HDD_ROOT)/kavita
 	@sudo chmod -R 755 \
 		$(DATA_ROOT) \
 		$(HDD_ROOT)/paperless \
-		$(HDD_ROOT)/immich
+		$(HDD_ROOT)/immich \
+		$(HDD_ROOT)/kavita
 	@echo "==> Done."
 
 init-public:
