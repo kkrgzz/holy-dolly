@@ -207,15 +207,7 @@ Go to **Settings → Libraries** and add one library per subdirectory, selecting
 - `/books/manga` → type **Manga**, `/books/comics` → type **Comics**
 - `/books/novels`, `/books/textbooks`, `/books/manuals` → type **Book**
 
-**Wallabag** — the DB schema must be initialized manually on first install (auto-population is unreliable with MariaDB):
-```bash
-make up-wallabag
-docker exec -it wallabag php bin/console wallabag:install --env=prod -n
-docker exec -it wallabag chown -R nobody:nobody /var/www/wallabag
-make restart-wallabag
-```
-Then open `http://<host>:9091` and log in with `wallabag` / `wallabag`. **Change the password immediately.**
-To connect Miniflux: open Miniflux → **Settings → Integrations → Wallabag** and enter your Wallabag URL and credentials.
+**Wallabag** — the DB schema must be initialized manually on first install. See [docs/wallabag.md](docs/wallabag.md) for the full setup guide including Miniflux integration and mobile apps.
 
 **Uptime Kuma** — open `http://<host>:3001`, create your admin account, add monitors for each service. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for the full guide.
 
