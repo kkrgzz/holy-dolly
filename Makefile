@@ -6,12 +6,12 @@ export
 # Private machine: personal data — documents, finance, photos, files
 # Public machine:  productivity tools — RSS, automation, notes
 # =============================================================================
-PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma kavita
-PUBLIC_SERVICES  := miniflux n8n trilium pdfding
+PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma kavita pdfding
+PUBLIC_SERVICES  := miniflux n8n trilium
 ALL_SERVICES     := $(PRIVATE_SERVICES) $(PUBLIC_SERVICES)
 
 .PHONY: all setup \
-        init-private init-public \
+        init-private init-public init-pdfding \
         up-private up-public up-all \
         down-private down-public down-all \
         restart-private restart-public \
@@ -42,7 +42,9 @@ init-private:
 		$(DATA_ROOT)/immich/pgdata \
 		$(DATA_ROOT)/immich/model-cache \
 		$(DATA_ROOT)/uptime-kuma \
-		$(DATA_ROOT)/kavita/config
+		$(DATA_ROOT)/kavita/config \
+		$(DATA_ROOT)/pdfding/db \
+		$(DATA_ROOT)/pdfding/media
 	@sudo mkdir -p \
 		$(HDD_ROOT)/paperless/consume \
 		$(HDD_ROOT)/paperless/media \
@@ -69,11 +71,25 @@ init-public:
 		$(DATA_ROOT)/miniflux/db \
 		$(DATA_ROOT)/n8n/pgdata \
 		$(DATA_ROOT)/n8n/data \
-		$(DATA_ROOT)/trilium \
-		$(DATA_ROOT)/pdfding/db \
-		$(DATA_ROOT)/pdfding/media
+		$(DATA_ROOT)/trilium
 	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT)
 	@sudo chmod -R 755 $(DATA_ROOT)
+	@echo "==> Done."
+
+# init-pdfding: run once on the private machine before starting PdfDing.
+# Creates the SSD directories needed to start.
+# Optional HDD library: uncomment the HDD_ROOT line below and the
+# corresponding volume in pdfding/docker-compose.yml.
+init-pdfding:
+	@echo "==> Initializing PdfDing directories..."
+	@sudo mkdir -p \
+		$(DATA_ROOT)/pdfding/db \
+		$(DATA_ROOT)/pdfding/media
+	# @sudo mkdir -p $(HDD_ROOT)/pdfding/library
+	@sudo chown -R $(PUID):$(PGID) \
+		$(DATA_ROOT)/pdfding
+	@sudo chmod -R 755 \
+		$(DATA_ROOT)/pdfding
 	@echo "==> Done."
 
 # =============================================================================

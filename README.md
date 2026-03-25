@@ -16,11 +16,12 @@ Internet / Tailscale
         │   (personal data)             │   (productivity tools)
         │   ├── Paperless-NGX  :8000    │   ├── Miniflux       :9090
         │   ├── Firefly III    :8082    │   ├── n8n            :5678
-        │   ├── Firefly Import :8083    │   └── Trilium Notes  :8085
-        │   ├── Filebrowser    :8081    │
+        │   ├── Firefly Import :8083    │   ├── n8n            :5678
+        │   ├── Filebrowser    :8081    │   └── Trilium Notes  :8085
         │   ├── Syncthing      :8384    │
         │   ├── Immich         :2283    │
         │   ├── Kavita         :5000    │
+        │   ├── PdfDing        :9091    │
         │   └── Uptime Kuma    :3001    │
         │           │
         │   External USB HDD
@@ -50,6 +51,7 @@ Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
 | Syncthing | `8384` | `syncthing.yourdomain.com` |
 | Immich | `2283` | `photos.yourdomain.com` |
 | Kavita | `5000` | `library.yourdomain.com` |
+| PdfDing | `9091` | `pdfding.yourdomain.com` |
 | Uptime Kuma | `3001` | `status.yourdomain.com` |
 
 ### Public Machine
@@ -59,7 +61,6 @@ Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
 | Miniflux | `9090` | `miniflux.yourdomain.com` |
 | n8n | `5678` | `n8n.yourdomain.com` |
 | Trilium Notes | `8085` | `notes.yourdomain.com` |
-| PdfDing | `9091` | `pdfding.yourdomain.com` |
 
 > Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your VM firewall for device-to-device sync.
 
@@ -99,12 +100,13 @@ External HDD  (HDD_ROOT=/mnt/hdd)
 ├── paperless/media/           Processed document files
 ├── paperless/export/          Manual exports
 ├── immich/upload/             Photo and video library
-└── kavita/library/            Manga, ebooks, and comics
-    ├── manga/                 → Kavita library type: Manga
-    ├── comics/                → Kavita library type: Comics
-    ├── novels/                → Kavita library type: Book
-    ├── textbooks/             → Kavita library type: Book
-    └── manuals/               → Kavita library type: Book
+├── kavita/library/            Manga, ebooks, and comics
+│   ├── manga/                 → Kavita library type: Manga
+│   ├── comics/                → Kavita library type: Comics
+│   ├── novels/                → Kavita library type: Book
+│   ├── textbooks/             → Kavita library type: Book
+│   └── manuals/               → Kavita library type: Book
+└── pdfding/library/           (optional) PDF library — uncomment volume in compose
 ```
 
 ---
@@ -244,8 +246,8 @@ make update-<name>       # pull latest image and restart
 make reset-<name>        # wipe data and restart (destructive!)
 ```
 
-**Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `kavita` `uptime-kuma`
-**Public:** `miniflux` `n8n` `trilium` `pdfding`
+**Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `kavita` `pdfding` `uptime-kuma`
+**Public:** `miniflux` `n8n` `trilium`
 
 ```bash
 # Examples

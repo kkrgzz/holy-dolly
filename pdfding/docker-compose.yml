@@ -48,3 +48,6 @@ services:
     volumes:
       # SSD — uploaded PDFs and thumbnails
       - ${DATA_ROOT}/pdfding/media:/home/nonroot/pdfding/media
+      # HDD — optional: mount an external library directory
+      # Uncomment and run "make init-pdfding" after enabling.
+      # - ${HDD_ROOT}/pdfding/library:/home/nonroot/pdfding/library
