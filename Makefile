@@ -7,7 +7,7 @@ export
 # Public machine:  productivity tools — RSS, automation, notes
 # =============================================================================
 PRIVATE_SERVICES := paperless-ngx firefly filebrowser syncthing immich uptime-kuma kavita
-PUBLIC_SERVICES  := miniflux n8n trilium wallabag
+PUBLIC_SERVICES  := miniflux n8n trilium pdfding
 ALL_SERVICES     := $(PRIVATE_SERVICES) $(PUBLIC_SERVICES)
 
 .PHONY: all setup \
@@ -70,8 +70,8 @@ init-public:
 		$(DATA_ROOT)/n8n/pgdata \
 		$(DATA_ROOT)/n8n/data \
 		$(DATA_ROOT)/trilium \
-		$(DATA_ROOT)/wallabag/db \
-		$(DATA_ROOT)/wallabag/images
+		$(DATA_ROOT)/pdfding/db \
+		$(DATA_ROOT)/pdfding/media
 	@sudo chown -R $(PUID):$(PGID) $(DATA_ROOT)
 	@sudo chmod -R 755 $(DATA_ROOT)
 	@echo "==> Done."

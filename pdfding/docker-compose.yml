@@ -1,0 +1,50 @@
+# PdfDing — self-hosted PDF manager, viewer and editor
+# Docs: https://docs.pdfding.com/getting_started/compose/
+# Docs: https://docs.pdfding.com/configuration/
+#
+# FIRST-TIME SETUP:
+#   1. make up-pdfding
+#   2. Open https://pdfding.${DOMAIN} and register your account
+#   3. Set DISABLE_USER_SIGNUP=TRUE in this file and make restart-pdfding
+
+services:
+  pdfding-db:
+    image: postgres:16
+    container_name: pdfding-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pdfding
+      POSTGRES_PASSWORD: ${PDFDING_DB_PASS}
+      POSTGRES_DB: pdfding
+    volumes:
+      # SSD — database files
+      - ${DATA_ROOT}/pdfding/db:/var/lib/postgresql/data
+
+  pdfding:
+    image: mrmn/pdfding:v1.6.3
+    container_name: pdfding
+    restart: unless-stopped
+    depends_on:
+      - pdfding-db
+    ports:
+      - "9091:8000"
+    environment:
+      TZ: ${TZ}
+      # General
+      HOST_NAME: pdfding.${DOMAIN}
+      ACCOUNT_EMAIL_VERIFICATION: "FALSE"
+      # Set to TRUE after creating your account to prevent new signups
+      DISABLE_USER_SIGNUP: "FALSE"
+      # Security
+      SECRET_KEY: ${PDFDING_SECRET_KEY}
+      CSRF_COOKIE_SECURE: "TRUE"
+      SESSION_COOKIE_SECURE: "TRUE"
+      # Database
+      DATABASE_TYPE: POSTGRES
+      POSTGRES_HOST: pdfding-db
+      POSTGRES_NAME: pdfding
+      POSTGRES_USER: pdfding
+      POSTGRES_PASSWORD: ${PDFDING_DB_PASS}
+    volumes:
+      # SSD — uploaded PDFs and thumbnails
+      - ${DATA_ROOT}/pdfding/media:/home/nonroot/pdfding/media
