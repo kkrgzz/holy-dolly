@@ -59,7 +59,7 @@ Configure each entry in NPM as a proxy host pointing to `<docker-vm-ip>:<port>`.
 | Miniflux | `9090` | `miniflux.yourdomain.com` |
 | n8n | `5678` | `n8n.yourdomain.com` |
 | Trilium Notes | `8085` | `notes.yourdomain.com` |
-| Wallabag | `9091` | `read.yourdomain.com` |
+| PdfDing | `9091` | `pdfding.yourdomain.com` |
 
 > Syncthing also needs ports **22000/tcp**, **22000/udp**, and **21027/udp** open on your VM firewall for device-to-device sync.
 
@@ -87,8 +87,8 @@ VM disk  (DATA_ROOT=/opt/docker-data)
 ├── n8n/data/                  Encryption keys, workflow files
 ├── trilium/                   Notes database
 ├── uptime-kuma/               Monitoring data
-├── wallabag/db/               MariaDB database
-└── wallabag/images/           Article thumbnails and cached images
+├── pdfding/db/                PostgreSQL database
+└── pdfding/media/             Uploaded PDFs and thumbnails
 
 External HDD  (HDD_ROOT=/mnt/hdd)
 │  USB-connected bulk storage — private machine only.
@@ -207,7 +207,7 @@ Go to **Settings → Libraries** and add one library per subdirectory, selecting
 - `/books/manga` → type **Manga**, `/books/comics` → type **Comics**
 - `/books/novels`, `/books/textbooks`, `/books/manuals` → type **Book**
 
-**Wallabag** — the DB schema must be initialized manually on first install. See [docs/wallabag.md](docs/wallabag.md) for the full setup guide including Miniflux integration and mobile apps.
+**PdfDing** — open `https://pdfding.<your-domain>` and register your account. Once done, set `DISABLE_USER_SIGNUP=TRUE` in `pdfding/docker-compose.yml` and run `make restart-pdfding` to prevent new registrations.
 
 **Uptime Kuma** — open `http://<host>:3001`, create your admin account, add monitors for each service. See [docs/uptime-kuma.md](docs/uptime-kuma.md) for the full guide.
 
@@ -245,7 +245,7 @@ make reset-<name>        # wipe data and restart (destructive!)
 ```
 
 **Private:** `paperless-ngx` `firefly` `filebrowser` `syncthing` `immich` `kavita` `uptime-kuma`
-**Public:** `miniflux` `n8n` `trilium` `wallabag`
+**Public:** `miniflux` `n8n` `trilium` `pdfding`
 
 ```bash
 # Examples
